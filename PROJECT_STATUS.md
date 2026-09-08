@@ -24,6 +24,9 @@ Build a real end-to-end DevOps portfolio project that demonstrates practical Jun
 - /health returns HTTP 200 OK
 - /version endpoint created and tested
 - /version returns application version 1.0.0
+- pytest and httpx installed
+- Automated tests created for /, /health, and /version
+- All 3 API tests passing successfully
 
 ## Working Environment
 
@@ -61,6 +64,18 @@ Build and validate the first version of the application before containerizing it
 
 ## Problems Encountered
 
+### pytest could not import the app module
+Running `pytest` directly caused:
+
+ModuleNotFoundError: No module named 'app'
+
+Solution:
+Run the test suite through the active Python interpreter:
+
+python -m pytest
+
+This successfully used the project virtual environment and discovered all tests.
+
 ### Python virtual environment failed under /mnt/c
 The virtual environment could not be created correctly because the project was stored on the Windows-mounted filesystem.
 
@@ -85,9 +100,13 @@ Installed and configured GitHub CLI.
 - pip
 - FastAPI
 - Uvicorn
+- pytest
+- httpx
 
 ## Next Task
-Create automated tests for the FastAPI endpoints.
+
+Introduce Docker and understand why the application should be containerized before writing the Dockerfile.
+
 ## Future Architecture
 
 Developer
