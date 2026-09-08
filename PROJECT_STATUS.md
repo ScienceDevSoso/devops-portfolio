@@ -22,6 +22,8 @@ Build a real end-to-end DevOps portfolio project that demonstrates practical Jun
 - Root / endpoint created and tested
 - /health endpoint created and tested
 - /health returns HTTP 200 OK
+- /version endpoint created and tested
+- /version returns application version 1.0.0
 
 ## Working Environment
 
@@ -44,6 +46,8 @@ FastAPI
    +--> /
    |
    +--> /health
+   |
+   +--> /version
 
 ## Current Phase
 Build and validate the first version of the application before containerizing it.
@@ -83,8 +87,7 @@ Installed and configured GitHub CLI.
 - Uvicorn
 
 ## Next Task
-Commit and push the new /health endpoint and this project status update.
-
+Create automated tests for the FastAPI endpoints.
 ## Future Architecture
 
 Developer
