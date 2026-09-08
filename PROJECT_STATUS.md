@@ -1,62 +1,119 @@
 # DevOps Project Status
 
 ## Goal
-Build a real DevOps portfolio project that demonstrates practical skills in:
-Linux, Git, Bash/Python, Docker, CI/CD, AWS, Terraform, Kubernetes, networking, and monitoring.
+Build a real end-to-end DevOps portfolio project that demonstrates practical Junior DevOps skills.
 
 ## Completed
 - Git installed and configured
 - GitHub repository created
 - Main branch configured
-- Initial README created and pushed
-- WSL 2 installed and verified
-- Ubuntu installed
-- Windows Terminal installed
-- Git and Python verified inside Ubuntu
-- Project cloned into the native Linux filesystem
-- Python virtual environment created successfully in Linux
-- .gitignore added to exclude .venv
-- GitHub CLI configured for authentication from Ubuntu
-
+- README.md created
+- PROJECT_STATUS.md created
+- WSL 2 and Ubuntu installed
+- Windows Terminal configured
+- Repository cloned into /home/sohel/devops-portfolio
+- GitHub CLI authentication configured
+- Python virtual environment created
+- .gitignore configured
+- FastAPI installed
+- Uvicorn installed
+- requirements.txt created
+- Initial FastAPI application created
+- Root / endpoint created and tested
+- /health endpoint created and tested
+- /health returns HTTP 200 OK
 
 ## Working Environment
-Repository path:
+
+Repository:
 
 /home/sohel/devops-portfolio
 
-We are using the Linux filesystem instead of /mnt/c because Python virtual environments had permission issues on the Windows-mounted filesystem.
-
-## Current Phase
-Build the first version of the Python web application.
+We use the native Linux filesystem instead of /mnt/c because Python virtual environments caused permission/filesystem problems on the Windows-mounted filesystem.
 
 ## Current Architecture
 
-User
-  |
-  v
-Python Web API
+Browser
+   |
+   v
+Uvicorn
+   |
+   v
+FastAPI
+   |
+   +--> /
+   |
+   +--> /health
+
+## Current Phase
+Build and validate the first version of the application before containerizing it.
+
+## Important Technical Decisions
+- Use the native Linux filesystem for development.
+- Keep Python dependencies isolated inside .venv.
+- Do not commit .venv, __pycache__, or .pyc files.
+- Use GitHub CLI for GitHub authentication from Ubuntu.
+- Add health checks before introducing Docker and Kubernetes.
+
+## Problems Encountered
+
+### Python virtual environment failed under /mnt/c
+The virtual environment could not be created correctly because the project was stored on the Windows-mounted filesystem.
+
+Solution:
+Moved the working repository to:
+
+/home/sohel/devops-portfolio
+
+### GitHub password authentication failed
+GitHub does not support normal account-password authentication for Git operations over HTTPS.
+
+Solution:
+Installed and configured GitHub CLI.
+
+## Current Technologies
+- Linux / Ubuntu / WSL 2
+- Git
+- GitHub
+- GitHub CLI
+- Python 3
+- Python virtual environments
+- pip
+- FastAPI
+- Uvicorn
 
 ## Next Task
-Create the first Python web API.
+Commit and push the new /health endpoint and this project status update.
 
 ## Future Architecture
 
 Developer
-  |
-  v
+   |
+   v
 GitHub
-  |
-  v
-CI/CD
-  |
-  v
-Docker
-  |
-  v
+   |
+   v
+GitHub Actions CI/CD
+   |
+   v
+Tests + Docker Build
+   |
+   v
+Container Registry
+   |
+   v
 AWS Infrastructure
-  |
-  v
+   |
+   v
 Kubernetes
-  |
-  v
-Monitoring and Logs
+   |
+   v
+Helm
+   |
+   +--> Application
+   |
+   +--> Prometheus
+   |
+   +--> Grafana
+   |
+   +--> Logging / Observability
