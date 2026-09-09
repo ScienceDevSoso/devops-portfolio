@@ -15,28 +15,39 @@ Build a real end-to-end DevOps portfolio project that demonstrates practical Jun
 - GitHub CLI authentication configured
 - Python virtual environment created
 - .gitignore configured
-- FastAPI installed
-- Uvicorn installed
+- FastAPI and Uvicorn installed
 - requirements.txt created
 - Initial FastAPI application created
-- Root / endpoint created and tested
+- / endpoint created and tested
 - /health endpoint created and tested
-- /health returns HTTP 200 OK
 - /version endpoint created and tested
-- /version returns application version 1.0.0
 - pytest and httpx installed
 - Automated tests created for /, /health, and /version
-- All 3 API tests passing successfully
+- All 3 API tests passing locally
 - Docker Desktop configured with WSL 2 integration
-- Docker CLI and Docker Engine verified successfully
-- Dockerfile created for the FastAPI application
+- Docker CLI and Docker Engine verified
+- Dockerfile created
 - .dockerignore created
 - Docker image devops-portfolio:1.0 built successfully
-- FastAPI application successfully started inside a Docker container
-- Docker port mapping tested using host port 8001 to container port 8000
-- /health and /version endpoints successfully tested through the container
-- Docker container logs inspected
+- FastAPI application started successfully inside Docker
+- Host port 8001 mapped to container port 8000
+- /health and /version tested through Docker
+- Docker logs inspected
 - Docker container lifecycle practiced: run, stop, start, inspect, and remove
+- GitHub Actions CI workflow created
+- CI configured to trigger on pushes to main
+- GitHub-hosted Ubuntu runner used for CI
+- CI checks out the repository automatically
+- CI configures Python 3.14
+- CI installs dependencies from requirements.txt
+- CI runs python -m pytest automatically
+- First GitHub Actions CI run completed successfully
+- All 3 API tests passed in GitHub Actions
+- GitHub Actions logs inspected using GitHub CLI
+- actions/checkout updated from v4 to v7
+- actions/setup-python updated from v5 to v7
+- Node.js 20 GitHub Actions deprecation warning resolved
+- Updated CI workflow successfully verified
 
 ## Working Environment
 
@@ -44,9 +55,34 @@ Repository:
 
 /home/sohel/devops-portfolio
 
-We use the native Linux filesystem instead of /mnt/c because Python virtual environments caused permission/filesystem problems on the Windows-mounted filesystem.
+Development uses the native Linux filesystem instead of /mnt/c because Python virtual environments caused permission/filesystem problems on the Windows-mounted filesystem.
 
 ## Current Architecture
+
+Developer
+   |
+   | git push
+   v
+GitHub
+   |
+   v
+GitHub Actions CI
+   |
+   v
+Ubuntu Runner
+   |
+   +--> Checkout repository
+   |
+   +--> Python 3.14
+   |
+   +--> Install dependencies
+   |
+   +--> Run pytest
+            |
+            v
+       3 API tests
+
+Local application runtime:
 
 Client / Browser
    |
@@ -54,7 +90,7 @@ Client / Browser
    v
 Docker Host
    |
-   | port mapping 8001 -> 8000
+   | 8001 -> 8000
    v
 Docker Container
    |
@@ -65,51 +101,59 @@ Uvicorn
 FastAPI
    |
    +--> /
-   |
    +--> /health
-   |
    +--> /version
 
 ## Current Phase
 
-Docker containerization and local validation completed. Preparing to introduce GitHub Actions CI for automated testing.
+Basic Continuous Integration with GitHub Actions is working successfully.
+
+The application can now be tested locally and automatically tested by GitHub Actions after a push to main.
 
 ## Important Technical Decisions
 
 - Use the native Linux filesystem for development.
 - Keep Python dependencies isolated inside .venv.
 - Do not commit .venv, __pycache__, or .pyc files.
-- Use GitHub CLI for GitHub authentication from Ubuntu.
+- Use GitHub CLI for GitHub authentication and GitHub Actions inspection.
+- Run tests with python -m pytest so pytest uses the intended Python environment.
 - Add health checks before introducing Docker and Kubernetes.
-- Use python:3.14-slim as the Docker base image to match the tested Python runtime while keeping the image relatively small.
-- Install Python dependencies inside the Docker image from requirements.txt instead of copying the local .venv.
-- Use .dockerignore to exclude .venv, __pycache__, and .git from the Docker build context.
-- Run Uvicorn on 0.0.0.0 inside the container so the application is reachable through Docker port mapping.
-- Use host port 8001 mapped to container port 8000 because host port 8000 is already used by another local Docker container.
+- Use python:3.14-slim as the Docker base image.
+- Install dependencies inside the Docker image from requirements.txt.
+- Exclude .venv, __pycache__, and .git from Docker build context.
+- Run Uvicorn on 0.0.0.0 inside the container.
+- Use host port 8001 because host port 8000 is already occupied locally.
+- Use GitHub Actions for Continuous Integration.
+- Run CI on a fresh GitHub-hosted Ubuntu runner rather than relying on the local machine.
+- Explicitly configure Python 3.14 in CI.
+- Use actions/checkout@v7 and actions/setup-python@v7.
+- Treat CI configuration as version-controlled code.
 
 ## Problems Encountered
 
 ### pytest could not import the app module
 
-Running `pytest` directly caused:
+Running:
+
+pytest
+
+caused:
 
 ModuleNotFoundError: No module named 'app'
 
 Solution:
 
-Run the test suite through the active Python interpreter:
-
 python -m pytest
 
-This successfully used the project virtual environment and discovered all tests.
+This runs pytest through the intended Python interpreter.
 
 ### Python virtual environment failed under /mnt/c
 
-The virtual environment could not be created correctly because the project was stored on the Windows-mounted filesystem.
+The project was originally stored on the Windows-mounted filesystem.
 
 Solution:
 
-Moved the working repository to:
+Moved the repository to:
 
 /home/sohel/devops-portfolio
 
@@ -119,49 +163,73 @@ GitHub does not support normal account-password authentication for Git operation
 
 Solution:
 
-Installed and configured GitHub CLI.
+Installed and configured GitHub CLI authentication.
 
-### Docker socket permission denied in WSL 2
+### Docker socket permission denied
 
-The Docker CLI was available, but `docker version` failed with:
+docker version failed with a permission error for:
 
-permission denied while trying to connect to the docker API at unix:///var/run/docker.sock
+/var/run/docker.sock
 
 Cause:
 
-The current Linux user was not a member of the docker group.
+The Linux user was not in the docker group.
 
 Solution:
 
-Added the current user to the docker group and started a fresh Ubuntu session so the new group membership became active.
+Added the user to the docker group and started a fresh Ubuntu session.
 
 ### Docker host port 8000 was already allocated
 
-Starting the FastAPI container with host port 8000 failed with:
-
-Bind for 0.0.0.0:8000 failed: port is already allocated
-
-Cause:
-
-Host port 8000 was already being used by another local Docker container.
+Docker could not publish host port 8000 because another local container was already using it.
 
 Investigation:
 
-Used `docker ps` to identify that another running container was already publishing host port 8000.
+docker ps
 
 Solution:
 
-Kept Uvicorn listening on port 8000 inside the container and mapped a different host port:
+Mapped:
 
 8001 -> 8000
 
+### GitHub Actions Node.js 20 deprecation warning
+
+The first CI run succeeded but reported that:
+
+actions/checkout@v4
+actions/setup-python@v5
+
+targeted the deprecated Node.js 20 runtime.
+
+Solution:
+
+Updated to:
+
+actions/checkout@v7
+actions/setup-python@v7
+
+The CI workflow passed again and the Node.js warning disappeared.
+
+### Dependency deprecation warnings during pytest
+
+Local pytest and GitHub Actions both report two warnings from FastAPI/Starlette/AnyIO dependencies.
+
+The warnings come from installed packages rather than application code.
+
+Current decision:
+
+Do not change dependencies blindly because all tests pass. Revisit when dependency upgrades are intentionally introduced.
+
 ## Current Technologies
 
-- Linux / Ubuntu / WSL 2
+- Linux
+- Ubuntu
+- WSL 2
 - Git
 - GitHub
 - GitHub CLI
-- Python 3
+- Python 3.14
 - Python virtual environments
 - pip
 - FastAPI
@@ -171,10 +239,13 @@ Kept Uvicorn listening on port 8000 inside the container and mapped a different 
 - Docker
 - Docker Desktop
 - Docker Desktop WSL 2 integration
+- GitHub Actions
+- YAML
+- Continuous Integration
 
 ## Next Task
 
-Introduce GitHub Actions and create the first CI workflow to automatically run the FastAPI test suite on repository changes.
+Extend the GitHub Actions workflow so CI also runs on pull requests targeting main.
 
 ## Future Architecture
 
