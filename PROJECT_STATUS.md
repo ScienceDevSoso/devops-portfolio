@@ -47,7 +47,14 @@ Build a real end-to-end DevOps portfolio project that demonstrates practical Jun
 - actions/checkout updated from v4 to v7
 - actions/setup-python updated from v5 to v7
 - Node.js 20 GitHub Actions deprecation warning resolved
-- Updated CI workflow successfully verified
+- CI configured to run on pull requests targeting main
+- Temporary ci-pr-test branch created
+- Pull Request #1 created to test the pull_request trigger
+- GitHub Actions automatically triggered for Pull Request #1
+- Pull request CI completed successfully
+- Test pull request closed without merging
+- Temporary test branch deleted
+- Returned to main with a clean working tree
 
 ## Working Environment
 
@@ -61,7 +68,7 @@ Development uses the native Linux filesystem instead of /mnt/c because Python vi
 
 Developer
    |
-   | git push
+   | git push / pull request
    v
 GitHub
    |
@@ -108,7 +115,11 @@ FastAPI
 
 Basic Continuous Integration with GitHub Actions is working successfully.
 
-The application can now be tested locally and automatically tested by GitHub Actions after a push to main.
+The application is automatically tested:
+- when code is pushed to main
+- when a pull request targets main
+
+The next step is to extend CI so GitHub Actions also builds the Docker image automatically.
 
 ## Important Technical Decisions
 
@@ -128,6 +139,8 @@ The application can now be tested locally and automatically tested by GitHub Act
 - Explicitly configure Python 3.14 in CI.
 - Use actions/checkout@v7 and actions/setup-python@v7.
 - Treat CI configuration as version-controlled code.
+- Run CI on both pushes to main and pull requests targeting main.
+- Validate CI trigger behavior with a temporary branch and test pull request before moving on.
 
 ## Problems Encountered
 
@@ -242,10 +255,11 @@ Do not change dependencies blindly because all tests pass. Revisit when dependen
 - GitHub Actions
 - YAML
 - Continuous Integration
+- Pull Requests
 
 ## Next Task
 
-Extend the GitHub Actions workflow so CI also runs on pull requests targeting main.
+Extend the GitHub Actions workflow so CI automatically builds the Docker image after the test suite passes.
 
 ## Future Architecture
 
