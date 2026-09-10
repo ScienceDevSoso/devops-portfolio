@@ -54,7 +54,19 @@ Build a real end-to-end DevOps portfolio project that demonstrates practical Jun
 - Pull request CI completed successfully
 - Test pull request closed without merging
 - Temporary test branch deleted
-- Returned to main with a clean working tree
+- Main branch protection enabled
+- Direct pushes to main are blocked
+- Changes to main must go through a Pull Request
+- CI status check named test is required before merge
+- Branch protection applies to repository administrators
+- Branch protection verified by deliberately attempting and failing to push directly to main
+- Docker image build added to GitHub Actions CI
+- CI now builds devops-portfolio:ci after automated tests pass
+- Pull Request #2 created for the Docker CI change
+- Pull Request #2 CI completed successfully
+- Docker image built successfully on the GitHub-hosted runner
+- Pull Request #2 merged into protected main
+- Temporary ci-docker-build branch deleted
 
 ## Working Environment
 
@@ -68,10 +80,15 @@ Development uses the native Linux filesystem instead of /mnt/c because Python vi
 
 Developer
    |
-   | git push / pull request
+   | feature branch
    v
 GitHub
    |
+   | Pull Request
+   v
+Branch Protection
+   |
+   | required CI check
    v
 GitHub Actions CI
    |
@@ -85,9 +102,14 @@ Ubuntu Runner
    +--> Install dependencies
    |
    +--> Run pytest
-            |
-            v
-       3 API tests
+   |       |
+   |       v
+   |   3 API tests
+   |
+   +--> Build Docker image
+           |
+           v
+   devops-portfolio:ci
 
 Local application runtime:
 
@@ -113,13 +135,17 @@ FastAPI
 
 ## Current Phase
 
-Basic Continuous Integration with GitHub Actions is working successfully.
+Continuous Integration with GitHub Actions is working successfully.
 
-The application is automatically tested:
+The application is automatically validated:
 - when code is pushed to main
 - when a pull request targets main
+- by running all automated API tests
+- by building the Docker image
 
-The next step is to extend CI so GitHub Actions also builds the Docker image automatically.
+The main branch is protected.
+
+Changes must be developed on a separate branch, submitted through a Pull Request, and pass the required CI test check before they can be merged.
 
 ## Important Technical Decisions
 
@@ -140,7 +166,11 @@ The next step is to extend CI so GitHub Actions also builds the Docker image aut
 - Use actions/checkout@v7 and actions/setup-python@v7.
 - Treat CI configuration as version-controlled code.
 - Run CI on both pushes to main and pull requests targeting main.
-- Validate CI trigger behavior with a temporary branch and test pull request before moving on.
+- Require Pull Requests before changes can enter main.
+- Require the CI test status check before Pull Requests can be merged.
+- Apply branch protection rules to repository administrators.
+- Build the Docker image in CI so a successful test suite alone is not considered sufficient validation.
+- Validate important GitHub and CI behavior deliberately before relying on it.
 
 ## Problems Encountered
 
@@ -234,6 +264,22 @@ Current decision:
 
 Do not change dependencies blindly because all tests pass. Revisit when dependency upgrades are intentionally introduced.
 
+### Protected main branch rejected a direct push
+
+A deliberate empty test commit was created locally on main and pushed to GitHub.
+
+GitHub rejected the push with:
+
+GH006: Protected branch update failed
+
+and reported:
+
+Changes must be made through a pull request.
+
+This confirmed that branch protection was working correctly.
+
+The local test commit was removed by resetting local main to origin/main.
+
 ## Current Technologies
 
 - Linux
@@ -242,6 +288,7 @@ Do not change dependencies blindly because all tests pass. Revisit when dependen
 - Git
 - GitHub
 - GitHub CLI
+- GitHub Branch Protection
 - Python 3.14
 - Python virtual environments
 - pip
@@ -259,7 +306,7 @@ Do not change dependencies blindly because all tests pass. Revisit when dependen
 
 ## Next Task
 
-Extend the GitHub Actions workflow so CI automatically builds the Docker image after the test suite passes.
+Separate Docker build validation into its own GitHub Actions job and make it depend on the test job succeeding.
 
 ## Future Architecture
 
