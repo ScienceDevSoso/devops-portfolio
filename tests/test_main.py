@@ -9,7 +9,7 @@ client = TestClient(app)
 def test_root():
     response = client.get("/")
 
-    assert response.status_code == 500
+    assert response.status_code == 200
     assert response.json() == {"message": "DevOps Portfolio API"}
 
 def test_health():
