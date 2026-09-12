@@ -67,6 +67,10 @@ Build a real end-to-end DevOps portfolio project that demonstrates practical Jun
 - Docker image built successfully on the GitHub-hosted runner
 - Pull Request #2 merged into protected main
 - Temporary ci-docker-build branch deleted
+- GitHub Actions CI split into separate test and docker-build jobs
+- docker-build configured with needs: test
+- Verified that docker-build runs only after the test job succeeds
+- Pull Request #4 passed both CI jobs and was merged into main
 
 ## Working Environment
 
