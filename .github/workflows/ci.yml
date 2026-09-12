@@ -22,5 +22,12 @@ jobs:
         run: pip install -r requirements.txt
       - name: Run tests
         run: python -m pytest
+
+  docker-build:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
       - name: Build Docker image
         run: docker build -t devops-portfolio:ci .
