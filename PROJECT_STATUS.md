@@ -74,7 +74,17 @@ Build a real end-to-end DevOps portfolio project that demonstrates practical Jun
 - Docker image successfully pulled from GHCR into local WSL environment
 - GHCR image digest verified during pull
 - Container successfully started from the GHCR image
+- GHCR-published latest image verified through the /health endpoint
 - Temporary GHCR test container stopped and removed
+- Docker image tagging improved to include the Git commit SHA
+- GitHub Actions now builds the registry image with both latest and commit-SHA tags
+- GitHub Actions pushes both latest and commit-SHA image tags to GHCR
+- SHA-tagging workflow validated through Pull Request CI
+- SHA-tagging workflow merged into protected main
+- Main branch CI successfully published the SHA-tagged image
+- Exact commit-SHA image successfully pulled from GHCR
+- Container successfully started from the exact commit-SHA image
+- /health successfully verified from the SHA-tagged container
 
 ## Working Environment
 
@@ -131,6 +141,7 @@ GitHub Actions
                   |
                   v
 ghcr.io/sciencedevsoso/devops-portfolio:latest
+ghcr.io/sciencedevsoso/devops-portfolio:<git-commit-sha>
 
 Local application runtime:
 
@@ -172,11 +183,14 @@ After approved code is merged into main:
 - the application image is built
 - the image is pushed to GitHub Container Registry
 
-Published image:
+Published images use two tags:
 
 ghcr.io/sciencedevsoso/devops-portfolio:latest
+ghcr.io/sciencedevsoso/devops-portfolio:<git-commit-sha>
 
-The published image has been successfully pulled back into the local environment and used to start a Docker container.
+The latest image and an exact commit-SHA image have both been successfully pulled from GHCR and run locally. The /health endpoint was verified from the published containers.
+
+The commit-SHA tag provides traceability between source code and the Docker image and allows a known-good image version to be selected for rollback.
 
 ## Important Technical Decisions
 
@@ -206,6 +220,9 @@ The published image has been successfully pulled back into the local environment
 - Use GitHub Container Registry before introducing AWS ECR so container registry concepts are understood first.
 - Use GITHUB_TOKEN instead of storing a personal GitHub password in CI.
 - Give publish-image only the permissions it needs: contents: read and packages: write.
+- Keep the latest image tag for convenience.
+- Also tag every published image with github.sha so the image can be traced to the exact Git commit.
+- Prefer commit-SHA tags when an exact deployment or rollback version must be identified.
 
 ## Problems Encountered
 
@@ -365,9 +382,21 @@ docker version
 
 ## Next Task
 
-Verify that a container started from the GHCR-published image responds correctly on the FastAPI endpoints.
+Begin the AWS deployment phase.
 
-After that, improve Docker image tagging so deployments can use immutable/versioned image tags instead of relying only on latest.
+First understand the minimum AWS and networking concepts needed for a manual deployment, then deploy the existing containerized FastAPI application manually before introducing Terraform automation.
+
+The initial AWS concepts will include:
+
+- Regions and Availability Zones
+- EC2
+- VPC and subnets
+- public and private IP addresses
+- security groups
+- ports and inbound traffic
+- SSH
+
+Terraform will be introduced only after the AWS infrastructure and manual deployment process are understood.
 
 ## Future Architecture
 
