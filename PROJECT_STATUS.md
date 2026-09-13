@@ -1,9 +1,11 @@
 # DevOps Project Status
 
 ## Goal
+
 Build a real end-to-end DevOps portfolio project that demonstrates practical Junior DevOps skills.
 
 ## Completed
+
 - Git installed and configured
 - GitHub repository created
 - Main branch configured
@@ -36,41 +38,43 @@ Build a real end-to-end DevOps portfolio project that demonstrates practical Jun
 - Docker container lifecycle practiced: run, stop, start, inspect, and remove
 - GitHub Actions CI workflow created
 - CI configured to trigger on pushes to main
-- GitHub-hosted Ubuntu runner used for CI
-- CI checks out the repository automatically
+- CI configured to trigger on Pull Requests targeting main
+- GitHub-hosted Ubuntu runners used for CI
 - CI configures Python 3.14
 - CI installs dependencies from requirements.txt
 - CI runs python -m pytest automatically
-- First GitHub Actions CI run completed successfully
-- All 3 API tests passed in GitHub Actions
-- GitHub Actions logs inspected using GitHub CLI
-- actions/checkout updated from v4 to v7
-- actions/setup-python updated from v5 to v7
+- All 3 API tests passing in GitHub Actions
+- actions/checkout updated to v7
+- actions/setup-python updated to v7
 - Node.js 20 GitHub Actions deprecation warning resolved
-- CI configured to run on pull requests targeting main
-- Temporary ci-pr-test branch created
-- Pull Request #1 created to test the pull_request trigger
-- GitHub Actions automatically triggered for Pull Request #1
-- Pull request CI completed successfully
-- Test pull request closed without merging
-- Temporary test branch deleted
 - Main branch protection enabled
-- Direct pushes to main are blocked
-- Changes to main must go through a Pull Request
-- CI status check named test is required before merge
+- Direct pushes to main blocked
+- Pull Requests required before changes can enter main
 - Branch protection applies to repository administrators
-- Branch protection verified by deliberately attempting and failing to push directly to main
-- Docker image build added to GitHub Actions CI
-- CI now builds devops-portfolio:ci after automated tests pass
-- Pull Request #2 created for the Docker CI change
-- Pull Request #2 CI completed successfully
-- Docker image built successfully on the GitHub-hosted runner
-- Pull Request #2 merged into protected main
-- Temporary ci-docker-build branch deleted
 - GitHub Actions CI split into separate test and docker-build jobs
 - docker-build configured with needs: test
-- Verified that docker-build runs only after the test job succeeds
-- Pull Request #4 passed both CI jobs and was merged into main
+- Verified that docker-build is skipped when the test job fails
+- Deliberately introduced a failing pytest assertion to test CI behavior
+- Verified failed test job prevents docker-build from running
+- Restored the test and verified both CI jobs passed again
+- test and docker-build configured as required branch protection checks
+- Deliberately broke Dockerfile to test Docker build failure behavior
+- Verified test passed while docker-build failed
+- Verified failed docker-build caused Pull Request mergeStateStatus to become BLOCKED
+- Restored Dockerfile and verified Pull Request mergeStateStatus became CLEAN
+- Temporary CI failure test branches and Pull Requests cleaned up without merging broken code
+- GitHub Container Registry publishing added to GitHub Actions
+- publish-image job added after docker-build
+- publish-image configured to run only on pushes to main
+- Pull Request runs verified to skip publish-image
+- GitHub Actions authenticated to GHCR using GITHUB_TOKEN
+- packages: write permission configured for image publishing
+- Docker image published to GitHub Container Registry
+- Published image: ghcr.io/sciencedevsoso/devops-portfolio:latest
+- Docker image successfully pulled from GHCR into local WSL environment
+- GHCR image digest verified during pull
+- Container successfully started from the GHCR image
+- Temporary GHCR test container stopped and removed
 
 ## Working Environment
 
@@ -79,6 +83,8 @@ Repository:
 /home/sohel/devops-portfolio
 
 Development uses the native Linux filesystem instead of /mnt/c because Python virtual environments caused permission/filesystem problems on the Windows-mounted filesystem.
+
+Docker Desktop runs on Windows and provides Docker Engine access to Ubuntu through WSL 2 integration.
 
 ## Current Architecture
 
@@ -92,38 +98,47 @@ GitHub
    v
 Branch Protection
    |
-   | required CI check
+   | required checks:
+   | test
+   | docker-build
    v
-GitHub Actions CI
+GitHub Actions
    |
-   v
-Ubuntu Runner
+   +--> test job
+   |      |
+   |      +--> Checkout repository
+   |      +--> Python 3.14
+   |      +--> Install dependencies
+   |      +--> pytest
    |
-   +--> Checkout repository
+   +--> docker-build job
+   |      |
+   |      | needs: test
+   |      +--> Checkout repository
+   |      +--> docker build
    |
-   +--> Python 3.14
-   |
-   +--> Install dependencies
-   |
-   +--> Run pytest
-   |       |
-   |       v
-   |   3 API tests
-   |
-   +--> Build Docker image
-           |
-           v
-   devops-portfolio:ci
+   +--> publish-image job
+          |
+          | needs: docker-build
+          | runs only on push to main
+          +--> Checkout repository
+          +--> Login to GHCR
+          +--> Build registry image
+          +--> Push image
+                  |
+                  v
+       GitHub Container Registry
+                  |
+                  v
+ghcr.io/sciencedevsoso/devops-portfolio:latest
 
 Local application runtime:
 
 Client / Browser
    |
-   | localhost:8001
    v
 Docker Host
    |
-   | 8001 -> 8000
    v
 Docker Container
    |
@@ -139,17 +154,29 @@ FastAPI
 
 ## Current Phase
 
-Continuous Integration with GitHub Actions is working successfully.
+Continuous Integration and initial container image publishing are working successfully.
 
-The application is automatically validated:
-- when code is pushed to main
-- when a pull request targets main
-- by running all automated API tests
-- by building the Docker image
+Pull Requests are automatically validated with:
 
-The main branch is protected.
+- pytest
+- Docker image build
 
-Changes must be developed on a separate branch, submitted through a Pull Request, and pass the required CI test check before they can be merged.
+Both test and docker-build are required before changes can merge into main.
+
+After approved code is merged into main:
+
+- GitHub Actions runs the tests again
+- Docker image build is validated
+- publish-image runs
+- GitHub Actions logs in to GHCR
+- the application image is built
+- the image is pushed to GitHub Container Registry
+
+Published image:
+
+ghcr.io/sciencedevsoso/devops-portfolio:latest
+
+The published image has been successfully pulled back into the local environment and used to start a Docker container.
 
 ## Important Technical Decisions
 
@@ -163,18 +190,22 @@ Changes must be developed on a separate branch, submitted through a Pull Request
 - Install dependencies inside the Docker image from requirements.txt.
 - Exclude .venv, __pycache__, and .git from Docker build context.
 - Run Uvicorn on 0.0.0.0 inside the container.
-- Use host port 8001 because host port 8000 is already occupied locally.
 - Use GitHub Actions for Continuous Integration.
-- Run CI on a fresh GitHub-hosted Ubuntu runner rather than relying on the local machine.
+- Run CI on fresh GitHub-hosted Ubuntu runners.
 - Explicitly configure Python 3.14 in CI.
 - Use actions/checkout@v7 and actions/setup-python@v7.
 - Treat CI configuration as version-controlled code.
-- Run CI on both pushes to main and pull requests targeting main.
+- Run CI on pushes to main and Pull Requests targeting main.
 - Require Pull Requests before changes can enter main.
-- Require the CI test status check before Pull Requests can be merged.
-- Apply branch protection rules to repository administrators.
-- Build the Docker image in CI so a successful test suite alone is not considered sufficient validation.
-- Validate important GitHub and CI behavior deliberately before relying on it.
+- Require both test and docker-build CI checks before Pull Requests can merge.
+- Use needs: test so Docker validation only runs after tests pass.
+- Build the Docker image in CI so passing Python tests alone is not enough.
+- Deliberately test failure scenarios before relying on CI protection.
+- Do not publish Docker images from unmerged Pull Requests.
+- Publish Docker images only after code reaches main.
+- Use GitHub Container Registry before introducing AWS ECR so container registry concepts are understood first.
+- Use GITHUB_TOKEN instead of storing a personal GitHub password in CI.
+- Give publish-image only the permissions it needs: contents: read and packages: write.
 
 ## Problems Encountered
 
@@ -230,24 +261,13 @@ Added the user to the docker group and started a fresh Ubuntu session.
 
 Docker could not publish host port 8000 because another local container was already using it.
 
-Investigation:
-
-docker ps
-
 Solution:
 
-Mapped:
-
-8001 -> 8000
+Used another host port while keeping container port 8000.
 
 ### GitHub Actions Node.js 20 deprecation warning
 
-The first CI run succeeded but reported that:
-
-actions/checkout@v4
-actions/setup-python@v5
-
-targeted the deprecated Node.js 20 runtime.
+Older GitHub Actions versions used the deprecated Node.js 20 runtime.
 
 Solution:
 
@@ -256,33 +276,66 @@ Updated to:
 actions/checkout@v7
 actions/setup-python@v7
 
-The CI workflow passed again and the Node.js warning disappeared.
-
 ### Dependency deprecation warnings during pytest
 
-Local pytest and GitHub Actions both report two warnings from FastAPI/Starlette/AnyIO dependencies.
-
-The warnings come from installed packages rather than application code.
+Local pytest and GitHub Actions report warnings from FastAPI/Starlette/AnyIO dependencies.
 
 Current decision:
 
-Do not change dependencies blindly because all tests pass. Revisit when dependency upgrades are intentionally introduced.
+Do not change dependencies blindly because all tests pass. Revisit dependency upgrades intentionally later.
 
 ### Protected main branch rejected a direct push
 
-A deliberate empty test commit was created locally on main and pushed to GitHub.
+A deliberate test push to main was rejected.
 
-GitHub rejected the push with:
+This confirmed that branch protection was working.
 
-GH006: Protected branch update failed
+### Test failure CI experiment
 
-and reported:
+A pytest assertion was deliberately changed to expect HTTP 500 instead of HTTP 200.
 
-Changes must be made through a pull request.
+Result:
 
-This confirmed that branch protection was working correctly.
+test failed
+docker-build was skipped
 
-The local test commit was removed by resetting local main to origin/main.
+The test was restored and both jobs passed.
+
+### Docker build failure experiment
+
+Dockerfile was deliberately changed to COPY a file that did not exist.
+
+Result:
+
+test passed
+docker-build failed
+Pull Request mergeStateStatus became BLOCKED
+
+After restoring Dockerfile:
+
+test passed
+docker-build passed
+Pull Request mergeStateStatus became CLEAN
+
+This confirmed that docker-build is an effective required merge gate.
+
+### Docker command disappeared from WSL
+
+Ubuntu temporarily reported:
+
+The command 'docker' could not be found in this WSL 2 distro.
+
+Docker Desktop WSL integration was already enabled.
+
+Solution:
+
+Ran:
+
+wsl --shutdown
+
+from Windows, restarted Ubuntu while Docker Desktop was running, and verified Docker access again with:
+
+docker version
 
 ## Current Technologies
 
@@ -307,10 +360,14 @@ The local test commit was removed by resetting local main to origin/main.
 - YAML
 - Continuous Integration
 - Pull Requests
+- GitHub Container Registry
+- Docker image registries
 
 ## Next Task
 
-Separate Docker build validation into its own GitHub Actions job and make it depend on the test job succeeding.
+Verify that a container started from the GHCR-published image responds correctly on the FastAPI endpoints.
+
+After that, improve Docker image tagging so deployments can use immutable/versioned image tags instead of relying only on latest.
 
 ## Future Architecture
 
