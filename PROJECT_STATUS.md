@@ -86,6 +86,24 @@ Build a real end-to-end DevOps portfolio project that demonstrates practical Jun
 - Container successfully started from the exact commit-SHA image
 - /health successfully verified from the SHA-tagged container
 
+- Manual AWS EC2 deployment completed and documented
+- AWS networking behind the EC2 deployment inspected manually
+- Default VPC identified: 172.31.0.0/16
+- EC2 subnet identified: 172.31.16.0/20 in eu-north-1a
+- EC2 private IP identified: 172.31.21.20
+- Public IP used during deployment: 16.171.54.38
+- Main route table inspected
+- Verified 172.31.0.0/16 -> local
+- Verified 0.0.0.0/0 -> Internet Gateway
+- Confirmed subnet uses the main route table implicitly
+- Confirmed Internet Gateway is attached to the VPC
+- Security Group inbound rules inspected
+- SSH port 22 restricted to developer public IP /32
+- FastAPI port 8000 restricted to developer public IP /32
+- Security Group outbound allows all traffic to 0.0.0.0/0
+- Understood VPC, subnet, routing, Internet Gateway, Security Group, private IP, and public IP roles
+
+
 ## Working Environment
 
 Repository:
@@ -388,29 +406,13 @@ docker version
 
 ## Next Task
 
-The first manual AWS deployment is complete.
+The manual AWS deployment and AWS networking inspection are complete.
 
-The FastAPI application is now running on an AWS EC2 instance using the exact Docker image previously published to GHCR with a Git commit SHA tag.
+Next, begin Infrastructure as Code with Terraform.
 
-The manual deployment included:
+Before creating infrastructure, learn what Terraform is, why this project needs it, how Infrastructure as Code differs from manual AWS Console configuration, and what terraform init, terraform plan, and terraform apply do.
 
-- AWS EC2 instance running Ubuntu 26.04 LTS
-- t3.micro instance type
-- SSH key-pair authentication
-- SSH access restricted by Security Group
-- public and private IP addressing
-- encrypted EBS root storage
-- Docker Engine installed manually on EC2
-- ubuntu user added to the docker group
-- SHA-tagged application image pulled from GHCR
-- FastAPI container started with port 8000 exposed
-- Security Group configured to allow application traffic on port 8000 from the developer IP
-- /health endpoint verified externally
-- /version endpoint verified externally
-
-Next, inspect and understand the AWS networking that supports this deployment, especially the VPC, subnet, routing, public/private IP addresses, and Security Group behavior.
-
-After the manual AWS infrastructure and networking are understood, begin reproducing the infrastructure with Terraform.
+Then reproduce the AWS infrastructure gradually with Terraform.
 
 ## Future Architecture
 
