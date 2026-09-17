@@ -102,6 +102,21 @@ Build a real end-to-end DevOps portfolio project that demonstrates practical Jun
 - FastAPI port 8000 restricted to developer public IP /32
 - Security Group outbound allows all traffic to 0.0.0.0/0
 - Understood VPC, subnet, routing, Internet Gateway, Security Group, private IP, and public IP roles
+- Terraform CLI installed and verified
+- AWS CLI v2 installed and verified
+- AWS CLI authenticated with non-root IAM user sohel-admin
+- Terraform working directory created under terraform/
+- AWS provider configured for eu-north-1
+- terraform init completed successfully
+- Terraform AWS provider downloaded and locked
+- terraform validate completed successfully
+- Terraform successfully authenticated to AWS
+- Existing default VPC read using a Terraform data source
+- Default VPC CIDR 172.31.0.0/16 confirmed through Terraform
+- First terraform plan completed with no infrastructure changes
+- First terraform apply completed with 0 resources added, changed, or destroyed
+- Terraform state files and .terraform/ excluded from Git
+- Terraform configuration formatted with terraform fmt
 
 
 ## Working Environment
@@ -406,13 +421,11 @@ docker version
 
 ## Next Task
 
-The manual AWS deployment and AWS networking inspection are complete.
+Terraform foundation and AWS authentication are working.
 
-Next, begin Infrastructure as Code with Terraform.
+Next, define the first AWS resource that Terraform will manage directly.
 
-Before creating infrastructure, learn what Terraform is, why this project needs it, how Infrastructure as Code differs from manual AWS Console configuration, and what terraform init, terraform plan, and terraform apply do.
-
-Then reproduce the AWS infrastructure gradually with Terraform.
+Begin gradually, using the manually learned AWS infrastructure as the reference. Review every terraform plan before allowing Terraform to create or modify AWS infrastructure.
 
 ## Future Architecture
 
