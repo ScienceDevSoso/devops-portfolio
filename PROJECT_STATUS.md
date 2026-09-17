@@ -379,24 +379,38 @@ docker version
 - Pull Requests
 - GitHub Container Registry
 - Docker image registries
+- AWS
+- Amazon EC2
+- AWS IAM
+- Security Groups
+- Amazon EBS
+- SSH
 
 ## Next Task
 
-Begin the AWS deployment phase.
+The first manual AWS deployment is complete.
 
-First understand the minimum AWS and networking concepts needed for a manual deployment, then deploy the existing containerized FastAPI application manually before introducing Terraform automation.
+The FastAPI application is now running on an AWS EC2 instance using the exact Docker image previously published to GHCR with a Git commit SHA tag.
 
-The initial AWS concepts will include:
+The manual deployment included:
 
-- Regions and Availability Zones
-- EC2
-- VPC and subnets
-- public and private IP addresses
-- security groups
-- ports and inbound traffic
-- SSH
+- AWS EC2 instance running Ubuntu 26.04 LTS
+- t3.micro instance type
+- SSH key-pair authentication
+- SSH access restricted by Security Group
+- public and private IP addressing
+- encrypted EBS root storage
+- Docker Engine installed manually on EC2
+- ubuntu user added to the docker group
+- SHA-tagged application image pulled from GHCR
+- FastAPI container started with port 8000 exposed
+- Security Group configured to allow application traffic on port 8000 from the developer IP
+- /health endpoint verified externally
+- /version endpoint verified externally
 
-Terraform will be introduced only after the AWS infrastructure and manual deployment process are understood.
+Next, inspect and understand the AWS networking that supports this deployment, especially the VPC, subnet, routing, public/private IP addresses, and Security Group behavior.
+
+After the manual AWS infrastructure and networking are understood, begin reproducing the infrastructure with Terraform.
 
 ## Future Architecture
 
