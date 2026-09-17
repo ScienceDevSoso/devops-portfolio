@@ -1,3 +1,10 @@
 .venv/
 __pycache__/
 *.pyc
+
+# Terraform local working directory
+.terraform/
+
+# Terraform state files
+*.tfstate
+*.tfstate.*
