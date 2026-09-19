@@ -500,3 +500,79 @@ Begin defining the compute resource that will use this Security Group, while con
 
 
 
+
+## Terraform EC2 Deployment Milestone
+
+Completed:
+- Existing manual EC2 configuration inspected before recreating compute with Terraform
+- Existing Ubuntu 26.04 AMI inspected and reused for the learning deployment
+- Existing subnet inspected: subnet-047c7f9d3d19817a4 in eu-north-1a
+- Subnet confirmed to belong to the default VPC and assign public IPv4 addresses
+- Terraform-managed EC2 instance created
+- EC2 instance type configured as t3.micro
+- Existing EC2 key pair devops-portfolio-ec2-key reused for SSH access
+- Terraform-managed Security Group attached to the EC2 instance
+- Public IPv4 assignment explicitly enabled in Terraform
+- SSH ingress rule added for TCP port 22
+- SSH restricted to the current developer public IPv4 address using a /32 CIDR
+- Terraform plan reviewed before EC2 creation
+- Terraform created EC2 instance i-0a3070af7b8b806c7 successfully
+- Terraform state inspected for the new EC2 resource
+- EC2 system and instance health checks verified as OK
+- SSH access to the Terraform-created EC2 instance verified successfully
+- Docker installed manually on the fresh Ubuntu EC2 instance
+- Docker daemon verified as active
+- Docker socket permission problem diagnosed
+- ubuntu user added to the docker group
+- Docker client and server verified without sudo
+- Application image pulled from GitHub Container Registry
+- ghcr.io/sciencedevsoso/devops-portfolio:latest started successfully on EC2
+- Docker port 8000 mapped to container port 8000
+- FastAPI /health verified successfully from inside the EC2 instance
+- FastAPI /health verified successfully externally through the EC2 public IP
+- Terraform idempotency verified after EC2 creation with no infrastructure changes required
+
+Problems encountered:
+- The terraform-ec2-instance branch was created from a stale local main branch after PR #15 had already merged remotely
+- The EC2 resource initially referenced aws_security_group.app before the branch contained that resource
+- The EC2 work was stashed, the branch rebased onto origin/main, and the work restored
+- git stash pop produced a main.tf merge conflict because both main and the stash modified the same Terraform file
+- The conflict was resolved manually by preserving both the existing Security Group resources and the new EC2 resource
+- The old developer public IP had changed, so the existing SSH /32 CIDR could not be reused
+- The current public IPv4 address was checked before creating the Terraform SSH rule
+- Docker initially returned permission denied for /var/run/docker.sock
+- The ubuntu user was added to the docker group and a new SSH session activated the new group membership
+
+Current Terraform-managed AWS architecture:
+
+Existing Default VPC
+        |
+        v
+Existing Subnet
+subnet-047c7f9d3d19817a4
+        |
+        v
+Terraform-managed EC2
+devops-portfolio-app
+        |
+        +--> Terraform-managed Security Group
+        |       |
+        |       +--> TCP 22 from developer /32
+        |       +--> TCP 8000
+        |       +--> outbound traffic
+        |
+        +--> Ubuntu 26.04
+                |
+                v
+              Docker
+                |
+                v
+ghcr.io/sciencedevsoso/devops-portfolio:latest
+                |
+                v
+             FastAPI
+                |
+                +--> /health
+
+Next task:
+Commit and merge the Terraform EC2 milestone, then decide how to make server provisioning reproducible instead of manually installing Docker after every new EC2 instance.
