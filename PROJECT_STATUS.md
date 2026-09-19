@@ -459,3 +459,44 @@ Helm
    +--> Grafana
    |
    +--> Logging / Observability
+
+## Terraform Security Group Milestone
+
+Completed:
+- First Terraform-managed AWS Security Group created
+- Security Group created inside the existing default VPC
+- Terraform-managed outbound rule allows all IPv4 traffic
+- Terraform-managed inbound rule allows TCP port 8000
+- Terraform state inspected with terraform state list and terraform state show
+- Terraform idempotency verified: repeated terraform plan returned no changes
+- AWS CLI expired-session authentication failure troubleshot
+- AWS CLI authentication restored using aws login --remote through an Incognito browser session
+- AWS identity verified with aws sts get-caller-identity
+
+Technologies added:
+- Terraform
+- Terraform state
+- AWS CLI v2
+- AWS VPC
+- Terraform-managed Security Groups
+
+Current Terraform architecture:
+
+Existing Default VPC
+        |
+        | data.aws_vpc.default
+        v
+Terraform
+        |
+        v
+devops-portfolio-app Security Group
+        |
+        +--> Ingress: TCP 8000 from 0.0.0.0/0
+        |
+        +--> Egress: all traffic to 0.0.0.0/0
+
+Next task:
+Begin defining the compute resource that will use this Security Group, while continuing to review every terraform plan before applying infrastructure changes.
+
+
+
