@@ -150,46 +150,37 @@ GitHub Container Registry
 ghcr.io/sciencedevsoso/devops-portfolio:latest
               |
               v
-Local Kubernetes / Minikube
-              |
-              v
-Deployment
+Kubernetes / Minikube
    |
-   | desired replicas: 1
-   v
-Pod
+   +--> Deployment
+   |      |
+   |      v
+   |     Pod
+   |      |
+   |      v
+   |   FastAPI container
    |
-   v
-FastAPI container
+   +--> ClusterIP Service
    |
    +--> readiness probe: /health
    +--> liveness probe: /health
 
-Kubernetes Service
-   |
-   v
-Pod :8000
+AWS / Terraform:
+- AWS provider remains configured
+- existing default VPC is currently read as a data source
+- standalone EC2 application infrastructure has been retired
 
 ## Current Phase
 
-Local Kubernetes deployment is working successfully with Minikube.
+The project has migrated away from the standalone EC2 + Docker deployment model.
 
-The FastAPI container image published by GitHub Actions to GHCR is now deployed using Kubernetes manifests.
+The Terraform-managed EC2 instance, application Security Group, SSH rule, application port rule, and outbound rule were intentionally destroyed after the Kubernetes deployment was verified locally.
 
-Implemented:
+The current application runtime is Kubernetes through Minikube.
 
-- Kubernetes Deployment
-- one desired application replica
-- GHCR container image
-- container port 8000
-- readiness probe using `/health`
-- liveness probe using `/health`
-- ClusterIP Service on port 8000
-- local access using `kubectl port-forward`
+Terraform remains in the repository because it will be reused for the upcoming AWS Kubernetes/EKS infrastructure phase.
 
-Kubernetes self-healing was deliberately tested by deleting the running application Pod. The Deployment detected that the actual replica count no longer matched the desired state and automatically created a replacement Pod.
-
-The replacement Pod reached `Ready 1/1` and the application `/health` endpoint was successfully verified through the Kubernetes Service.
+The existing default AWS VPC is still read through a Terraform data source, but Terraform currently manages no standalone application compute.
 
 ## Important Technical Decisions
 
@@ -390,19 +381,16 @@ docker version
 
 ## Next Task
 
-Merge the local Kubernetes manifests milestone.
+Begin the AWS Kubernetes phase.
 
-Then retire the standalone Terraform EC2 application deployment and begin moving the Kubernetes architecture toward AWS.
+Next:
+- understand what Amazon EKS provides
+- understand the relationship between EKS control plane and worker compute
+- decide the minimum sensible EKS architecture for this portfolio
+- use Terraform to create the required AWS Kubernetes infrastructure
+- deploy the existing Kubernetes manifests to AWS
 
-After the standalone EC2 deployment is removed, continue with:
-
-- AWS Kubernetes / EKS fundamentals
-- Kubernetes deployment on AWS
-- Helm
-- Prometheus
-- Grafana
-- application and infrastructure metrics
-- logging and failure scenarios
+Do not introduce Helm until the Kubernetes manifests are understood and working on AWS.
 
 ## Future Architecture
 
@@ -661,3 +649,61 @@ Key lessons:
 - `kubectl port-forward` provides temporary local access for development/testing
 - readiness probes control whether a Pod should receive traffic
 - liveness probes help Kubernetes detect unhealthy application containers
+
+
+## Standalone EC2 Retirement Milestone
+
+Completed:
+- Local Kubernetes deployment verified before retiring standalone EC2
+- Terraform EC2 application resource removed from configuration
+- EC2-specific Terraform variables removed
+- EC2-specific Terraform outputs removed
+- EC2 user_data bootstrap script removed
+- EC2-specific terraform.tfvars example removed
+- Terraform configuration validated successfully
+- Destructive Terraform plan reviewed before apply
+- Terraform plan contained exactly 5 resource destructions
+- Terraform-managed EC2 instance `i-00c82256c055c7dc1` destroyed
+- application Security Group destroyed
+- SSH ingress rule destroyed
+- TCP 8000 ingress rule destroyed
+- outbound Security Group rule destroyed
+- Terraform apply completed with `0 added, 0 changed, 5 destroyed`
+- existing default VPC remains untouched
+- standalone EC2 application deployment is no longer active
+
+Architecture transition:
+
+Before:
+
+Terraform
+   |
+   v
+EC2
+   |
+   v
+Docker
+   |
+   v
+FastAPI
+
+Current:
+
+GitHub Actions
+   |
+   v
+GHCR
+   |
+   v
+Kubernetes / Minikube
+   |
+   v
+Deployment
+   |
+   v
+Pod
+   |
+   v
+FastAPI
+
+Terraform will next be reused for AWS Kubernetes/EKS infrastructure.
