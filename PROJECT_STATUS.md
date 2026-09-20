@@ -133,7 +133,6 @@ Docker Desktop runs on Windows and provides Docker Engine access to Ubuntu throu
 
 Developer
    |
-   | feature branch + Pull Request
    v
 GitHub
    |
@@ -142,7 +141,7 @@ GitHub Actions
    |
    +--> pytest
    +--> Docker build
-   +--> publish image on main
+   +--> publish image
               |
               v
 GitHub Container Registry
@@ -151,54 +150,46 @@ GitHub Container Registry
 ghcr.io/sciencedevsoso/devops-portfolio:latest
               |
               v
-Terraform
+Local Kubernetes / Minikube
+              |
+              v
+Deployment
    |
-   +--> Existing default VPC
-   +--> Existing subnet
-   +--> Security Group
-   +--> EC2
-          |
-          | user_data / cloud-init
-          v
-       Ubuntu
-          |
-          v
-       Docker
-          |
-          v
-       FastAPI
-          |
-          +--> /
-          +--> /health
-          +--> /version
+   | desired replicas: 1
+   v
+Pod
+   |
+   v
+FastAPI container
+   |
+   +--> readiness probe: /health
+   +--> liveness probe: /health
+
+Kubernetes Service
+   |
+   v
+Pod :8000
 
 ## Current Phase
 
-The first reproducible AWS application deployment is working.
+Local Kubernetes deployment is working successfully with Minikube.
 
-Terraform now creates the EC2 infrastructure and supplies an EC2 `user_data` bootstrap script.
+The FastAPI container image published by GitHub Actions to GHCR is now deployed using Kubernetes manifests.
 
-On the first boot of a fresh EC2 instance:
+Implemented:
 
-- Ubuntu package metadata is updated
-- Docker is installed automatically
-- Docker is enabled and started
-- `ghcr.io/sciencedevsoso/devops-portfolio:latest` is pulled
-- the FastAPI container starts automatically on port 8000
-- Docker is configured to restart the application container unless it is explicitly stopped
+- Kubernetes Deployment
+- one desired application replica
+- GHCR container image
+- container port 8000
+- readiness probe using `/health`
+- liveness probe using `/health`
+- ClusterIP Service on port 8000
+- local access using `kubectl port-forward`
 
-A fresh Terraform-managed EC2 instance was created and `/health` succeeded externally without manually SSHing into the server to provision Docker or start the application.
+Kubernetes self-healing was deliberately tested by deleting the running application Pod. The Deployment detected that the actual replica count no longer matched the desired state and automatically created a replacement Pod.
 
-Terraform configuration has also been refactored so environment-specific values are supplied through variables instead of being embedded directly in the resource definitions.
-
-Useful Terraform outputs now expose:
-
-- EC2 instance ID
-- EC2 public IP
-- application URL
-- default VPC CIDR
-
-The variable/output refactor was verified with `terraform plan` and produced no AWS infrastructure changes.
+The replacement Pod reached `Ready 1/1` and the application `/health` endpoint was successfully verified through the Kubernetes Service.
 
 ## Important Technical Decisions
 
@@ -379,6 +370,9 @@ docker version
 - pytest
 - httpx
 - Docker
+- Kubernetes
+- Minikube
+- kubectl
 - Docker Desktop
 - Docker Desktop WSL 2 integration
 - GitHub Actions
@@ -396,15 +390,19 @@ docker version
 
 ## Next Task
 
-Finish and merge the reproducible EC2 provisioning milestone through the protected Git workflow.
+Merge the local Kubernetes manifests milestone.
 
-After the milestone is merged:
+Then retire the standalone Terraform EC2 application deployment and begin moving the Kubernetes architecture toward AWS.
 
-- inspect and remove the obsolete Git stash if it is no longer needed
-- inspect whether the older manually-created EC2 instance `i-0a4772beed995707b` is still running before deciding whether to terminate it
-- then begin learning Kubernetes manifests using the containerized application
+After the standalone EC2 deployment is removed, continue with:
 
-No AWS resources should be terminated without explicit review and approval.
+- AWS Kubernetes / EKS fundamentals
+- Kubernetes deployment on AWS
+- Helm
+- Prometheus
+- Grafana
+- application and infrastructure metrics
+- logging and failure scenarios
 
 ## Future Architecture
 
@@ -622,3 +620,44 @@ cloud-init / user_data
            FastAPI
               |
               +--> /health
+
+
+## Local Kubernetes / Minikube Milestone
+
+Completed:
+- Minikube installed in Ubuntu/WSL
+- Minikube configured to use the Docker driver
+- Local single-node Kubernetes cluster created
+- Kubernetes node verified as `Ready`
+- `kubectl` successfully connected to the Minikube cluster
+- `k8s/deployment.yaml` created
+- FastAPI deployed from `ghcr.io/sciencedevsoso/devops-portfolio:latest`
+- Kubernetes Deployment configured with one replica
+- readiness probe configured against `/health`
+- liveness probe configured against `/health`
+- `k8s/service.yaml` created
+- ClusterIP Service configured on port 8000
+- Kubernetes rolling update observed after adding health probes
+- application Pod reached `Ready 1/1`
+- deliberate Pod deletion used to test Kubernetes self-healing
+- Deployment automatically created a replacement Pod
+- replacement Pod reached Running and Ready state
+- `kubectl port-forward` used to access the ClusterIP Service locally
+- `/health` successfully returned `{"status":"healthy"}` through the Kubernetes Service
+
+Problems encountered:
+- Minikube initially failed with `PROVIDER_DOCKER_VERSION_EXIT_1`
+- `docker` was unavailable inside the WSL Ubuntu distro
+- Docker Desktop WSL integration was re-enabled
+- Docker client and Docker Desktop engine were verified with `docker version`
+- Minikube then started successfully using the Docker driver
+
+Key lessons:
+- Pods are disposable runtime units
+- Deployments maintain desired application state
+- deleting a Pod does not delete the application when a Deployment manages it
+- Services provide stable networking in front of disposable Pods
+- ClusterIP Services are internal to the cluster
+- `kubectl port-forward` provides temporary local access for development/testing
+- readiness probes control whether a Pod should receive traffic
+- liveness probes help Kubernetes detect unhealthy application containers
