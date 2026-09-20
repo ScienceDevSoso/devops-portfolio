@@ -707,3 +707,75 @@ Pod
 FastAPI
 
 Terraform will next be reused for AWS Kubernetes/EKS infrastructure.
+
+## AWS EKS Milestone
+
+Completed:
+- Amazon EKS cluster created with Terraform
+- Kubernetes version 1.36 configured
+- EKS control plane created successfully
+- Separate IAM role created for the EKS control plane
+- Separate IAM role created for Kubernetes worker nodes
+- Required EKS, ECR, worker-node, and CNI policies attached
+- Existing default VPC reused
+- Three existing subnets across eu-north-1a, eu-north-1b, and eu-north-1c used
+- Kubernetes public API endpoint restricted to the developer public IP /32
+- EKS managed node group created
+- Worker node configured as t3.small
+- Worker node verified as Ready with kubectl
+- Existing Kubernetes Deployment and Service manifests reused unchanged
+- FastAPI Pod deployed successfully to EKS
+- Pod reached Ready 1/1
+- ClusterIP Service created successfully
+- /health verified successfully through kubectl port-forward
+
+Problems encountered:
+- Initial managed node group used t3.medium
+- AWS rejected t3.medium because it was not Free Tier eligible for the account
+- Node group entered CREATE_FAILED after a long provisioning attempt
+- Free Tier eligible EC2 instance types were checked before retrying
+- t3.small was confirmed eligible
+- Terraform detected the failed node group as tainted
+- Terraform replaced only the failed node group
+- Corrected t3.small node group became ACTIVE successfully
+
+Important lessons:
+- EKS is AWS-managed Kubernetes
+- AWS manages the EKS Kubernetes control plane
+- Worker nodes provide compute where Kubernetes Pods actually run
+- Managed node groups manage worker-node lifecycle
+- EC2 still exists underneath Kubernetes, but it is generic cluster capacity instead of a dedicated application server
+- Kubernetes manifests can be reused across Minikube and EKS
+- Slow cloud operations should have fast prerequisite checks before apply
+- Terraform can recover from failed infrastructure by replacing tainted resources
+
+Current AWS Kubernetes architecture:
+
+GitHub Actions
+      |
+      v
+GHCR
+      |
+      v
+Amazon EKS
+      |
+      +--> AWS-managed Kubernetes control plane
+      |
+      +--> Managed Node Group
+              |
+              v
+         t3.small Worker
+              |
+              v
+           Deployment
+              |
+              v
+             Pod
+              |
+              v
+           FastAPI
+              |
+              +--> /health
+
+Next:
+Introduce Helm only after the existing Kubernetes manifests are fully understood.
