@@ -8,3 +8,4 @@ __pycache__/
 # Terraform state files
 *.tfstate
 *.tfstate.*
+terraform/terraform.tfvars

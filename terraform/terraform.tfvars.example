@@ -1,0 +1,4 @@
+ami_id             = "ami-xxxxxxxxxxxxxxxxx"
+subnet_id          = "subnet-xxxxxxxxxxxxxxxxx"
+key_name           = "your-ec2-key-pair-name"
+developer_ssh_cidr = "YOUR.PUBLIC.IP.ADDRESS/32"

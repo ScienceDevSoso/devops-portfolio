@@ -133,97 +133,72 @@ Docker Desktop runs on Windows and provides Docker Engine access to Ubuntu throu
 
 Developer
    |
-   | feature branch
+   | feature branch + Pull Request
    v
 GitHub
    |
-   | Pull Request
-   v
-Branch Protection
-   |
-   | required checks:
-   | test
-   | docker-build
    v
 GitHub Actions
    |
-   +--> test job
-   |      |
-   |      +--> Checkout repository
-   |      +--> Python 3.14
-   |      +--> Install dependencies
-   |      +--> pytest
-   |
-   +--> docker-build job
-   |      |
-   |      | needs: test
-   |      +--> Checkout repository
-   |      +--> docker build
-   |
-   +--> publish-image job
-          |
-          | needs: docker-build
-          | runs only on push to main
-          +--> Checkout repository
-          +--> Login to GHCR
-          +--> Build registry image
-          +--> Push image
-                  |
-                  v
-       GitHub Container Registry
-                  |
-                  v
+   +--> pytest
+   +--> Docker build
+   +--> publish image on main
+              |
+              v
+GitHub Container Registry
+              |
+              v
 ghcr.io/sciencedevsoso/devops-portfolio:latest
-ghcr.io/sciencedevsoso/devops-portfolio:<git-commit-sha>
-
-Local application runtime:
-
-Client / Browser
+              |
+              v
+Terraform
    |
-   v
-Docker Host
-   |
-   v
-Docker Container
-   |
-   v
-Uvicorn
-   |
-   v
-FastAPI
-   |
-   +--> /
-   +--> /health
-   +--> /version
+   +--> Existing default VPC
+   +--> Existing subnet
+   +--> Security Group
+   +--> EC2
+          |
+          | user_data / cloud-init
+          v
+       Ubuntu
+          |
+          v
+       Docker
+          |
+          v
+       FastAPI
+          |
+          +--> /
+          +--> /health
+          +--> /version
 
 ## Current Phase
 
-Continuous Integration and initial container image publishing are working successfully.
+The first reproducible AWS application deployment is working.
 
-Pull Requests are automatically validated with:
+Terraform now creates the EC2 infrastructure and supplies an EC2 `user_data` bootstrap script.
 
-- pytest
-- Docker image build
+On the first boot of a fresh EC2 instance:
 
-Both test and docker-build are required before changes can merge into main.
+- Ubuntu package metadata is updated
+- Docker is installed automatically
+- Docker is enabled and started
+- `ghcr.io/sciencedevsoso/devops-portfolio:latest` is pulled
+- the FastAPI container starts automatically on port 8000
+- Docker is configured to restart the application container unless it is explicitly stopped
 
-After approved code is merged into main:
+A fresh Terraform-managed EC2 instance was created and `/health` succeeded externally without manually SSHing into the server to provision Docker or start the application.
 
-- GitHub Actions runs the tests again
-- Docker image build is validated
-- publish-image runs
-- GitHub Actions logs in to GHCR
-- the application image is built
-- the image is pushed to GitHub Container Registry
+Terraform configuration has also been refactored so environment-specific values are supplied through variables instead of being embedded directly in the resource definitions.
 
-Published images use two tags:
+Useful Terraform outputs now expose:
 
-ghcr.io/sciencedevsoso/devops-portfolio:latest
-ghcr.io/sciencedevsoso/devops-portfolio:<git-commit-sha>
+- EC2 instance ID
+- EC2 public IP
+- application URL
+- default VPC CIDR
 
-The latest image and an exact commit-SHA image have both been successfully pulled from GHCR and run locally. The /health endpoint was verified from the published containers.
-
-The commit-SHA tag provides traceability between source code and the Docker image and allows a known-good image version to be selected for rollback.
+The variable/output refactor was verified with `terraform plan` and produced no AWS infrastructure changes.
 
 ## Important Technical Decisions
 
@@ -421,11 +396,15 @@ docker version
 
 ## Next Task
 
-Terraform foundation and AWS authentication are working.
+Finish and merge the reproducible EC2 provisioning milestone through the protected Git workflow.
 
-Next, define the first AWS resource that Terraform will manage directly.
+After the milestone is merged:
 
-Begin gradually, using the manually learned AWS infrastructure as the reference. Review every terraform plan before allowing Terraform to create or modify AWS infrastructure.
+- inspect and remove the obsolete Git stash if it is no longer needed
+- inspect whether the older manually-created EC2 instance `i-0a4772beed995707b` is still running before deciding whether to terminate it
+- then begin learning Kubernetes manifests using the containerized application
+
+No AWS resources should be terminated without explicit review and approval.
 
 ## Future Architecture
 
@@ -576,3 +555,70 @@ ghcr.io/sciencedevsoso/devops-portfolio:latest
 
 Next task:
 Commit and merge the Terraform EC2 milestone, then decide how to make server provisioning reproducible instead of manually installing Docker after every new EC2 instance.
+
+
+## Terraform Reproducible EC2 Provisioning Milestone
+
+Completed:
+- Added `terraform/user_data.sh` for automatic EC2 bootstrap provisioning
+- EC2 `user_data` configured with `file("${path.module}/user_data.sh")`
+- `user_data_replace_on_change = true` configured so bootstrap changes cause a fresh EC2 launch
+- Docker installation automated during the initial EC2 boot
+- Docker service automatically enabled and started
+- GHCR application image automatically pulled
+- FastAPI container automatically started on port 8000
+- Docker restart policy configured as `unless-stopped`
+- Terraform plan correctly identified that adding `user_data` required replacing the Terraform-managed EC2 instance
+- Reviewed the saved Terraform plan before applying the destructive replacement
+- Previous Terraform EC2 instance `i-0a3070af7b8b806c7` replaced intentionally
+- New Terraform EC2 instance created: `i-00c82256c055c7dc1`
+- New EC2 public IP after replacement: `13.60.8.100`
+- `/health` succeeded immediately from outside EC2 without manual server provisioning
+- Confirmed that Terraform can now reproduce the EC2 + Docker + FastAPI runtime from a fresh instance
+- Added Terraform input variables for AWS region, AMI, instance type, subnet, EC2 key pair, and developer SSH CIDR
+- Replaced hardcoded resource values with `var.<name>` references
+- Added local `terraform.tfvars` for environment-specific values
+- Added `terraform.tfvars.example` for repository documentation
+- Added `terraform/terraform.tfvars` to `.gitignore`
+- Added outputs for EC2 instance ID, EC2 public IP, application URL, and default VPC CIDR
+- Variable/output refactor validated with `terraform fmt`, `terraform validate`, and `terraform plan`
+- Refactor produced no real infrastructure changes
+- Application health verified again after the refactor
+
+Important technical decisions:
+- Use EC2 `user_data` only as a simple bootstrap mechanism at this stage, not as a long-term deployment platform
+- Treat infrastructure provisioning and application deployment as related but separate concerns
+- Use `user_data_replace_on_change = true` because initial-boot bootstrap scripts should run against a fresh instance when their configuration changes
+- Keep environment-specific Terraform values separate from resource definitions
+- Do not treat `.tfvars` files as secret-management systems
+- Keep the real local `terraform.tfvars` out of Git and commit only an example file
+- Expose infrastructure information through Terraform outputs instead of repeatedly inspecting raw Terraform state
+- Continue reviewing destructive Terraform plans before applying them
+
+Problems encountered:
+- `terraform plan` failed because the AWS CLI login session had expired
+- `aws sso login` failed because the AWS CLI configuration was not IAM Identity Center/SSO based
+- Authentication was restored with the AWS CLI login flow and verified with `aws sts get-caller-identity`
+- This reinforced the distinction between AWS CLI login credentials and `aws sso login`
+
+Current deployment flow:
+
+Terraform
+   |
+   v
+AWS EC2
+   |
+   | first boot
+   v
+cloud-init / user_data
+   |
+   +--> apt update
+   +--> install Docker
+   +--> enable/start Docker
+   +--> pull GHCR image
+   +--> start container
+              |
+              v
+           FastAPI
+              |
+              +--> /health
