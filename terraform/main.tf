@@ -23,12 +23,14 @@ resource "aws_vpc_security_group_ingress_rule" "allow_app_port" {
 }
 
 resource "aws_instance" "app" {
-  ami                         = "ami-0aba19e56f3eaec05"
-  instance_type               = "t3.micro"
-  key_name                    = "devops-portfolio-ec2-key"
-  subnet_id                   = "subnet-047c7f9d3d19817a4"
+  ami                         = var.ami_id
+  instance_type               = var.instance_type
+  key_name                    = var.key_name
+  subnet_id                   = var.subnet_id
   vpc_security_group_ids      = [aws_security_group.app.id]
   associate_public_ip_address = true
+  user_data                   = file("${path.module}/user_data.sh")
+  user_data_replace_on_change = true
 
   tags = {
     Name = "devops-portfolio-app"
@@ -37,7 +39,7 @@ resource "aws_instance" "app" {
 
 resource "aws_vpc_security_group_ingress_rule" "allow_ssh" {
   security_group_id = aws_security_group.app.id
-  cidr_ipv4         = "147.235.195.181/32"
+  cidr_ipv4         = var.developer_ssh_cidr
   from_port         = 22
   to_port           = 22
   ip_protocol       = "tcp"
