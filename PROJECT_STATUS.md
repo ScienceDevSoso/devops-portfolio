@@ -1,6 +1,6 @@
 # Project status
 
-Updated: 2026-09-22. Working branch: `feature/observability`.
+Updated: 2026-09-22. Repository baseline: `main` after PR #22.
 
 ## Current architecture
 
@@ -54,13 +54,16 @@ Updated: 2026-09-22. Working branch: `feature/observability`.
   A short sample showed about 1,033Mi node memory working set and 0.28 CPU cores
   used; these observations are not a sustained capacity guarantee.
 
-## Remaining verification and merge boundary
+## Final observability verification
 
-- The live application's old image returns no `/metrics`; `up{job="fastapi"}`
-  is 0. Deploy the published commit-SHA image **after** human review/merge and
-  successful main-branch publication. Generate one successful request and one
-  safe 404, wait for scrapes, and run `python3 scripts/verify-monitoring.py`
-  without `--skip-app`. This step remains pending, not passed.
+- The metrics-enabled application image was published from `main` and deployed
+  to EKS through Helm revision 2.
+- The live `/metrics` endpoint was verified on EKS.
+- Prometheus successfully scrapes the FastAPI target.
+- End-to-end monitoring verification passed for application requests, latency,
+  test 404/error metrics, node CPU and memory, container CPU and memory,
+  deployment availability, Pod restarts, kubelet, cAdvisor, and
+  kube-state-metrics.
 - The local Docker CLI is unavailable after the WSL restart. Container build
   validation therefore relies on the PR's Docker CI job until integration is
   restored.
