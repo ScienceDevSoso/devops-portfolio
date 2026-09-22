@@ -9,6 +9,29 @@ on:
       - main
 
 jobs:
+  monitoring-validation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install validation tools
+        run: |
+          python3 -m pip install PyYAML==6.0.3
+          curl -fsSL https://get.helm.sh/helm-v4.3.0-linux-amd64.tar.gz -o /tmp/helm.tar.gz
+          tar -xzf /tmp/helm.tar.gz -C /tmp linux-amd64/helm
+          curl -fsSL https://github.com/prometheus/prometheus/releases/download/v3.14.0/prometheus-3.14.0.linux-amd64.tar.gz -o /tmp/prometheus.tar.gz
+          tar -xzf /tmp/prometheus.tar.gz -C /tmp prometheus-3.14.0.linux-amd64/promtool
+
+      - name: Validate charts, scrape config, and dashboard queries
+        run: |
+          /tmp/linux-amd64/helm lint helm/devops-portfolio helm/monitoring
+          /tmp/linux-amd64/helm template devops-portfolio helm/devops-portfolio > /tmp/app.yaml
+          /tmp/linux-amd64/helm template monitoring helm/monitoring -n monitoring > /tmp/monitoring.yaml
+          python3 scripts/extract-monitoring-config.py /tmp/monitoring.yaml /tmp/monitoring-check
+          /tmp/prometheus-3.14.0.linux-amd64/promtool check config --syntax-only /tmp/monitoring-check/prometheus.yml
+          /tmp/prometheus-3.14.0.linux-amd64/promtool check rules /tmp/monitoring-check/dashboard-rules.yml
+
   test:
     runs-on: ubuntu-latest
     steps:

@@ -20,6 +20,8 @@ spec:
       containers:
         - name: devops-portfolio
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
           ports:
             - containerPort: {{ .Values.service.port }}
 

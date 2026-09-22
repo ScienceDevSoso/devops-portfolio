@@ -1,0 +1,120 @@
+{{- range $name, $config := dict "prometheus" .Values.prometheus "grafana" .Values.grafana "kube-state-metrics" .Values.kubeStateMetrics }}
+{{- $port := 8080 }}
+{{- if eq $name "prometheus" }}{{ $port = 9090 }}{{ end }}
+{{- if eq $name "grafana" }}{{ $port = 3000 }}{{ end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $.Release.Name }}-{{ $name }}
+spec:
+  replicas: 1
+  # Avoid surge memory and pod-slot demand on the single worker.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ $.Release.Name }}-{{ $name }}
+  template:
+    metadata:
+      labels:
+        app: {{ $.Release.Name }}-{{ $name }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/prometheus-config.yaml") $ | sha256sum }}
+        checksum/grafana: {{ include (print $.Template.BasePath "/grafana-config.yaml") $ | sha256sum }}
+    spec:
+      {{- if ne $name "grafana" }}
+      serviceAccountName: {{ $.Release.Name }}-{{ $name }}
+      {{- else }}
+      automountServiceAccountToken: false
+      {{- end }}
+      securityContext:
+        runAsNonRoot: true
+        {{- if eq $name "grafana" }}
+        runAsUser: 472
+        fsGroup: 472
+        {{- else }}
+        runAsUser: 65534
+        fsGroup: 65534
+        {{- end }}
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: {{ $name }}
+          image: {{ $config.image | quote }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          resources:
+            {{- toYaml $config.resources | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ $port }}
+          {{- if eq $name "prometheus" }}
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time={{ $config.retention }}
+            - --storage.tsdb.retention.size={{ $config.retentionSize }}
+            - --query.max-concurrency=2
+            - --query.max-samples=1000000
+          volumeMounts:
+            - {name: config, mountPath: /etc/prometheus, readOnly: true}
+            - {name: data, mountPath: /prometheus}
+          readinessProbe:
+            httpGet: {path: /-/ready, port: http}
+          livenessProbe:
+            httpGet: {path: /-/healthy, port: http}
+            initialDelaySeconds: 30
+          {{- else if eq $name "grafana" }}
+          env:
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef: {name: {{ $config.adminSecret }}, key: admin-password}
+            - {name: GF_USERS_ALLOW_SIGN_UP, value: "false"}
+            - {name: GF_AUTH_ANONYMOUS_ENABLED, value: "false"}
+            - {name: GF_ANALYTICS_REPORTING_ENABLED, value: "false"}
+            - {name: GF_ANALYTICS_CHECK_FOR_UPDATES, value: "false"}
+            - {name: GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES, value: "false"}
+            - {name: GF_PLUGINS_PREINSTALL_DISABLED, value: "true"}
+            - {name: GF_PLUGINS_PLUGIN_ADMIN_ENABLED, value: "false"}
+            - {name: GF_LOG_MODE, value: console}
+          volumeMounts:
+            - {name: data, mountPath: /var/lib/grafana}
+            - {name: config, mountPath: /etc/grafana/provisioning/datasources/datasource.yaml, subPath: datasource.yaml, readOnly: true}
+            - {name: config, mountPath: /etc/grafana/provisioning/dashboards/provider.yaml, subPath: provider.yaml, readOnly: true}
+            - {name: config, mountPath: /etc/grafana/dashboards/overview.json, subPath: overview.json, readOnly: true}
+          readinessProbe:
+            httpGet: {path: /api/health, port: http}
+            initialDelaySeconds: 10
+          {{- else }}
+          args:
+            - --resources=nodes,pods,deployments
+            - --metric-allowlist=kube_node_status_condition,kube_node_status_allocatable,kube_pod_status_phase,kube_pod_container_status_restarts_total,kube_pod_container_resource_requests,kube_deployment_spec_replicas,kube_deployment_status_replicas_available
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+          {{- end }}
+      {{- if ne $name "kube-state-metrics" }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ $.Release.Name }}-{{ $name }}
+        - name: data
+          emptyDir:
+            sizeLimit: {{ if eq $name "prometheus" }}768Mi{{ else }}128Mi{{ end }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $.Release.Name }}-{{ $name }}
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ $.Release.Name }}-{{ $name }}
+  ports:
+    - name: http
+      port: {{ $port }}
+      targetPort: http
+{{- end }}

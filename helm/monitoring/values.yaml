@@ -1,0 +1,23 @@
+# One release per cluster; no operator, alertmanager, sidecars, PVCs or node exporter.
+prometheus:
+  image: prom/prometheus:v3.14.0
+  retention: 6h
+  retentionSize: 256MB
+  resources:
+    requests: {cpu: 100m, memory: 256Mi, ephemeral-storage: 256Mi}
+    limits: {cpu: 400m, memory: 384Mi, ephemeral-storage: 1Gi}
+grafana:
+  image: grafana/grafana:13.2.2
+  adminSecret: grafana-admin
+  resources:
+    requests: {cpu: 50m, memory: 128Mi, ephemeral-storage: 64Mi}
+    limits: {cpu: 250m, memory: 256Mi, ephemeral-storage: 256Mi}
+kubeStateMetrics:
+  image: registry.k8s.io/kube-state-metrics/kube-state-metrics:v2.20.0
+  resources:
+    requests: {cpu: 20m, memory: 32Mi}
+    limits: {cpu: 100m, memory: 64Mi}
+application:
+  namespace: default
+  label: devops-portfolio
+  port: 8000
