@@ -150,7 +150,7 @@ GitHub Container Registry
 ghcr.io/sciencedevsoso/devops-portfolio:latest
               |
               v
-Kubernetes / Minikube
+Amazon EKS / Helm-managed application
    |
    +--> Deployment
    |      |
@@ -166,21 +166,21 @@ Kubernetes / Minikube
    +--> liveness probe: /health
 
 AWS / Terraform:
-- AWS provider remains configured
-- existing default VPC is currently read as a data source
-- standalone EC2 application infrastructure has been retired
+- Terraform manages the EKS control plane, IAM roles, and managed node group
+- Existing default VPC and subnets are reused
+- Helm manages the application Deployment and ClusterIP Service
+- Standalone EC2 application infrastructure has been retired
 
 ## Current Phase
 
-The project has migrated away from the standalone EC2 + Docker deployment model.
+The application runs on Amazon EKS with one FastAPI replica, managed by the
+`devops-portfolio` Helm release in the `default` namespace. Terraform manages
+cluster infrastructure; Helm manages the application resources.
 
-The Terraform-managed EC2 instance, application Security Group, SSH rule, application port rule, and outbound rule were intentionally destroyed after the Kubernetes deployment was verified locally.
+The original `k8s/` manifests remain as learning/reference material. Use the Helm
+chart for subsequent application changes instead of applying those manifests.
 
-The current application runtime is Kubernetes through Minikube.
-
-Terraform remains in the repository because it will be reused for the upcoming AWS Kubernetes/EKS infrastructure phase.
-
-The existing default AWS VPC is still read through a Terraform data source, but Terraform currently manages no standalone application compute.
+Next phase: introduce Prometheus and application metrics.
 
 ## Important Technical Decisions
 
@@ -779,3 +779,54 @@ Amazon EKS
 
 Next:
 Introduce Helm only after the existing Kubernetes manifests are fully understood.
+
+
+## Helm Application Management Milestone
+
+Completed on 2026-09-22:
+- Introduced `helm/devops-portfolio/` to package application resources, centralize configuration, and track deployments as Helm releases
+- `Chart.yaml` defines chart metadata and version; `values.yaml` supplies configuration; `templates/` renders the Deployment and Service
+- Kept configuration deliberately limited to `replicaCount`, `image.repository`, `image.tag`, and `service.port`
+- Validated the chart with `helm lint` and `helm template`
+- Confirmed the expected EKS context, healthy existing resources, no existing Helm releases, and no conflicting ownership metadata
+- Compared the live image, replica count, selectors, ports, and health probes against the rendered chart; differences were Kubernetes defaults and allocated Service fields
+- Adopted the existing Deployment and Service into release `devops-portfolio`, namespace `default`, using Helm 4.3.0
+- Preserved both resource UIDs, the existing Pod, and Service ClusterIP `10.100.135.172`; no resource replacement or Pod restart occurred
+- Verified `helm list`, `helm status` (deployed, revision 1), Deployment and Pod readiness, Service, and successful rollout status
+- Verified `/health` returned `{"status":"healthy"}` through a temporary Service port-forward
+- Confirmed both resources carry `app.kubernetes.io/managed-by: Helm`, `meta.helm.sh/release-name: devops-portfolio`, and `meta.helm.sh/release-namespace: default`
+- Retained the original `k8s/` manifests and left README.md unchanged
+
+Exact migration command:
+
+```bash
+helm install devops-portfolio helm/devops-portfolio --namespace default --kube-context arn:aws:eks:eu-north-1:237076104687:cluster/devops-portfolio-eks --take-ownership --server-side=false --wait=watcher --timeout 5m
+```
+
+Ownership and troubleshooting lessons:
+- Existing manually applied resources need explicit adoption; matching resource names alone does not establish Helm ownership
+- Checked installed Helm 4 CLI help before using `--take-ownership`; this option bypasses ownership checks, so inspect existing releases and metadata first
+- Used client-side updates (`--server-side=false`) for this adoption, without forced replacement
+- Avoid install rollback-on-failure during adoption: Helm documents that it uninstalls a failed installation, which could remove adopted resources
+- Helm now controls these resources; uninstalling this release would remove the application Deployment and Service
+- Helm 4 `helm list` includes all release statuses by default; the older `--all` flag is unsupported
+- Expired AWS credentials initially prevented inspection; authentication was restored with `aws login`
+- AWS authentication alone did not restore Kubernetes connectivity: the EKS API allowlist still contained an old developer IP
+- Updated the local ignored Terraform variables and applied the API CIDR change before retrying; no infrastructure resources were added or destroyed
+- This chart uses fixed resource names and is intended for one application release per namespace
+- The current image tag remains `latest`; use the existing image tag parameter with a commit SHA when an immutable deployment version is needed
+
+Current architecture:
+
+```text
+GitHub Actions -> GHCR -> Amazon EKS managed node group (t3.small)
+                              |
+Helm chart -> Helm release -> Deployment -> Pod -> FastAPI :8000
+                              |
+                              +-> ClusterIP Service :8000
+                              +-> readiness/liveness probes: /health
+Terraform -> EKS infrastructure, IAM, and restricted API access
+```
+
+Next phase: expose application metrics and introduce Prometheus scraping and
+monitoring, while retaining `/health` for Kubernetes probes.

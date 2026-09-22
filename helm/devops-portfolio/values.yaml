@@ -1,0 +1,8 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/sciencedevsoso/devops-portfolio
+  tag: latest
+
+service:
+  port: 8000
