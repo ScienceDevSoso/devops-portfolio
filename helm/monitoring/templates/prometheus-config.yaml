@@ -1,0 +1,57 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-prometheus
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 60s
+      scrape_timeout: 10s
+      evaluation_interval: 60s
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+          - targets: [localhost:9090]
+      - job_name: fastapi
+        sample_limit: 2000
+        kubernetes_sd_configs:
+          - role: pod
+            namespaces:
+              names: [{{ .Values.application.namespace | quote }}]
+            selectors:
+              - role: pod
+                label: app={{ .Values.application.label }}
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_pod_phase]
+            regex: Running
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_container_port_number]
+            regex: {{ .Values.application.port | quote }}
+            action: keep
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+      - job_name: kube-state-metrics
+        sample_limit: 5000
+        static_configs:
+          - targets: ['{{ .Release.Name }}-kube-state-metrics:8080']
+      {{- range $job, $path := dict "kubelet" "/metrics" "cadvisor" "/metrics/cadvisor" "node-resource" "/metrics/resource" }}
+      - job_name: {{ $job }}
+        sample_limit: 10000
+        scheme: https
+        metrics_path: {{ $path }}
+        authorization:
+          credentials_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+        tls_config:
+          ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+        kubernetes_sd_configs:
+          - role: node
+        relabel_configs:
+          - source_labels: [__meta_kubernetes_node_name]
+            target_label: node
+        metric_relabel_configs:
+          - source_labels: [__name__]
+            regex: 'node_cpu_usage_seconds_total|node_memory_working_set_bytes|container_cpu_usage_seconds_total|container_memory_working_set_bytes|container_network_receive_bytes_total|container_network_transmit_bytes_total|machine_cpu_cores|machine_memory_bytes|kubelet_running_pods|kubelet_running_containers|kubelet_volume_stats_.*'
+            action: keep
+      {{- end }}

@@ -1,0 +1,5 @@
+apiVersion: v2
+name: portfolio-monitoring
+description: Small, ephemeral Prometheus and Grafana stack for one EKS worker
+type: application
+version: 0.1.0

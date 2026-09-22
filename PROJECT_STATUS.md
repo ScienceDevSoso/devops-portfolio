@@ -1,832 +1,95 @@
-# DevOps Project Status
-
-## Goal
-
-Build a real end-to-end DevOps portfolio project that demonstrates practical Junior DevOps skills.
-
-## Completed
-
-- Git installed and configured
-- GitHub repository created
-- Main branch configured
-- README.md created
-- PROJECT_STATUS.md created
-- WSL 2 and Ubuntu installed
-- Windows Terminal configured
-- Repository cloned into /home/sohel/devops-portfolio
-- GitHub CLI authentication configured
-- Python virtual environment created
-- .gitignore configured
-- FastAPI and Uvicorn installed
-- requirements.txt created
-- Initial FastAPI application created
-- / endpoint created and tested
-- /health endpoint created and tested
-- /version endpoint created and tested
-- pytest and httpx installed
-- Automated tests created for /, /health, and /version
-- All 3 API tests passing locally
-- Docker Desktop configured with WSL 2 integration
-- Docker CLI and Docker Engine verified
-- Dockerfile created
-- .dockerignore created
-- Docker image devops-portfolio:1.0 built successfully
-- FastAPI application started successfully inside Docker
-- Host port 8001 mapped to container port 8000
-- /health and /version tested through Docker
-- Docker logs inspected
-- Docker container lifecycle practiced: run, stop, start, inspect, and remove
-- GitHub Actions CI workflow created
-- CI configured to trigger on pushes to main
-- CI configured to trigger on Pull Requests targeting main
-- GitHub-hosted Ubuntu runners used for CI
-- CI configures Python 3.14
-- CI installs dependencies from requirements.txt
-- CI runs python -m pytest automatically
-- All 3 API tests passing in GitHub Actions
-- actions/checkout updated to v7
-- actions/setup-python updated to v7
-- Node.js 20 GitHub Actions deprecation warning resolved
-- Main branch protection enabled
-- Direct pushes to main blocked
-- Pull Requests required before changes can enter main
-- Branch protection applies to repository administrators
-- GitHub Actions CI split into separate test and docker-build jobs
-- docker-build configured with needs: test
-- Verified that docker-build is skipped when the test job fails
-- Deliberately introduced a failing pytest assertion to test CI behavior
-- Verified failed test job prevents docker-build from running
-- Restored the test and verified both CI jobs passed again
-- test and docker-build configured as required branch protection checks
-- Deliberately broke Dockerfile to test Docker build failure behavior
-- Verified test passed while docker-build failed
-- Verified failed docker-build caused Pull Request mergeStateStatus to become BLOCKED
-- Restored Dockerfile and verified Pull Request mergeStateStatus became CLEAN
-- Temporary CI failure test branches and Pull Requests cleaned up without merging broken code
-- GitHub Container Registry publishing added to GitHub Actions
-- publish-image job added after docker-build
-- publish-image configured to run only on pushes to main
-- Pull Request runs verified to skip publish-image
-- GitHub Actions authenticated to GHCR using GITHUB_TOKEN
-- packages: write permission configured for image publishing
-- Docker image published to GitHub Container Registry
-- Published image: ghcr.io/sciencedevsoso/devops-portfolio:latest
-- Docker image successfully pulled from GHCR into local WSL environment
-- GHCR image digest verified during pull
-- Container successfully started from the GHCR image
-- GHCR-published latest image verified through the /health endpoint
-- Temporary GHCR test container stopped and removed
-- Docker image tagging improved to include the Git commit SHA
-- GitHub Actions now builds the registry image with both latest and commit-SHA tags
-- GitHub Actions pushes both latest and commit-SHA image tags to GHCR
-- SHA-tagging workflow validated through Pull Request CI
-- SHA-tagging workflow merged into protected main
-- Main branch CI successfully published the SHA-tagged image
-- Exact commit-SHA image successfully pulled from GHCR
-- Container successfully started from the exact commit-SHA image
-- /health successfully verified from the SHA-tagged container
-
-- Manual AWS EC2 deployment completed and documented
-- AWS networking behind the EC2 deployment inspected manually
-- Default VPC identified: 172.31.0.0/16
-- EC2 subnet identified: 172.31.16.0/20 in eu-north-1a
-- EC2 private IP identified: 172.31.21.20
-- Public IP used during deployment: 16.171.54.38
-- Main route table inspected
-- Verified 172.31.0.0/16 -> local
-- Verified 0.0.0.0/0 -> Internet Gateway
-- Confirmed subnet uses the main route table implicitly
-- Confirmed Internet Gateway is attached to the VPC
-- Security Group inbound rules inspected
-- SSH port 22 restricted to developer public IP /32
-- FastAPI port 8000 restricted to developer public IP /32
-- Security Group outbound allows all traffic to 0.0.0.0/0
-- Understood VPC, subnet, routing, Internet Gateway, Security Group, private IP, and public IP roles
-- Terraform CLI installed and verified
-- AWS CLI v2 installed and verified
-- AWS CLI authenticated with non-root IAM user sohel-admin
-- Terraform working directory created under terraform/
-- AWS provider configured for eu-north-1
-- terraform init completed successfully
-- Terraform AWS provider downloaded and locked
-- terraform validate completed successfully
-- Terraform successfully authenticated to AWS
-- Existing default VPC read using a Terraform data source
-- Default VPC CIDR 172.31.0.0/16 confirmed through Terraform
-- First terraform plan completed with no infrastructure changes
-- First terraform apply completed with 0 resources added, changed, or destroyed
-- Terraform state files and .terraform/ excluded from Git
-- Terraform configuration formatted with terraform fmt
-
-
-## Working Environment
-
-Repository:
-
-/home/sohel/devops-portfolio
-
-Development uses the native Linux filesystem instead of /mnt/c because Python virtual environments caused permission/filesystem problems on the Windows-mounted filesystem.
-
-Docker Desktop runs on Windows and provides Docker Engine access to Ubuntu through WSL 2 integration.
-
-## Current Architecture
-
-Developer
-   |
-   v
-GitHub
-   |
-   v
-GitHub Actions
-   |
-   +--> pytest
-   +--> Docker build
-   +--> publish image
-              |
-              v
-GitHub Container Registry
-              |
-              v
-ghcr.io/sciencedevsoso/devops-portfolio:latest
-              |
-              v
-Amazon EKS / Helm-managed application
-   |
-   +--> Deployment
-   |      |
-   |      v
-   |     Pod
-   |      |
-   |      v
-   |   FastAPI container
-   |
-   +--> ClusterIP Service
-   |
-   +--> readiness probe: /health
-   +--> liveness probe: /health
-
-AWS / Terraform:
-- Terraform manages the EKS control plane, IAM roles, and managed node group
-- Existing default VPC and subnets are reused
-- Helm manages the application Deployment and ClusterIP Service
-- Standalone EC2 application infrastructure has been retired
-
-## Current Phase
-
-The application runs on Amazon EKS with one FastAPI replica, managed by the
-`devops-portfolio` Helm release in the `default` namespace. Terraform manages
-cluster infrastructure; Helm manages the application resources.
-
-The original `k8s/` manifests remain as learning/reference material. Use the Helm
-chart for subsequent application changes instead of applying those manifests.
-
-Next phase: introduce Prometheus and application metrics.
-
-## Important Technical Decisions
-
-- Use the native Linux filesystem for development.
-- Keep Python dependencies isolated inside .venv.
-- Do not commit .venv, __pycache__, or .pyc files.
-- Use GitHub CLI for GitHub authentication and GitHub Actions inspection.
-- Run tests with python -m pytest so pytest uses the intended Python environment.
-- Add health checks before introducing Docker and Kubernetes.
-- Use python:3.14-slim as the Docker base image.
-- Install dependencies inside the Docker image from requirements.txt.
-- Exclude .venv, __pycache__, and .git from Docker build context.
-- Run Uvicorn on 0.0.0.0 inside the container.
-- Use GitHub Actions for Continuous Integration.
-- Run CI on fresh GitHub-hosted Ubuntu runners.
-- Explicitly configure Python 3.14 in CI.
-- Use actions/checkout@v7 and actions/setup-python@v7.
-- Treat CI configuration as version-controlled code.
-- Run CI on pushes to main and Pull Requests targeting main.
-- Require Pull Requests before changes can enter main.
-- Require both test and docker-build CI checks before Pull Requests can merge.
-- Use needs: test so Docker validation only runs after tests pass.
-- Build the Docker image in CI so passing Python tests alone is not enough.
-- Deliberately test failure scenarios before relying on CI protection.
-- Do not publish Docker images from unmerged Pull Requests.
-- Publish Docker images only after code reaches main.
-- Use GitHub Container Registry before introducing AWS ECR so container registry concepts are understood first.
-- Use GITHUB_TOKEN instead of storing a personal GitHub password in CI.
-- Give publish-image only the permissions it needs: contents: read and packages: write.
-- Keep the latest image tag for convenience.
-- Also tag every published image with github.sha so the image can be traced to the exact Git commit.
-- Prefer commit-SHA tags when an exact deployment or rollback version must be identified.
-
-## Problems Encountered
-
-### pytest could not import the app module
-
-Running:
-
-pytest
-
-caused:
-
-ModuleNotFoundError: No module named 'app'
-
-Solution:
-
-python -m pytest
-
-This runs pytest through the intended Python interpreter.
-
-### Python virtual environment failed under /mnt/c
-
-The project was originally stored on the Windows-mounted filesystem.
-
-Solution:
-
-Moved the repository to:
-
-/home/sohel/devops-portfolio
-
-### GitHub password authentication failed
-
-GitHub does not support normal account-password authentication for Git operations over HTTPS.
-
-Solution:
-
-Installed and configured GitHub CLI authentication.
-
-### Docker socket permission denied
-
-docker version failed with a permission error for:
-
-/var/run/docker.sock
-
-Cause:
-
-The Linux user was not in the docker group.
-
-Solution:
-
-Added the user to the docker group and started a fresh Ubuntu session.
-
-### Docker host port 8000 was already allocated
-
-Docker could not publish host port 8000 because another local container was already using it.
-
-Solution:
-
-Used another host port while keeping container port 8000.
-
-### GitHub Actions Node.js 20 deprecation warning
-
-Older GitHub Actions versions used the deprecated Node.js 20 runtime.
-
-Solution:
-
-Updated to:
-
-actions/checkout@v7
-actions/setup-python@v7
-
-### Dependency deprecation warnings during pytest
-
-Local pytest and GitHub Actions report warnings from FastAPI/Starlette/AnyIO dependencies.
-
-Current decision:
-
-Do not change dependencies blindly because all tests pass. Revisit dependency upgrades intentionally later.
-
-### Protected main branch rejected a direct push
-
-A deliberate test push to main was rejected.
-
-This confirmed that branch protection was working.
-
-### Test failure CI experiment
-
-A pytest assertion was deliberately changed to expect HTTP 500 instead of HTTP 200.
-
-Result:
-
-test failed
-docker-build was skipped
-
-The test was restored and both jobs passed.
-
-### Docker build failure experiment
-
-Dockerfile was deliberately changed to COPY a file that did not exist.
-
-Result:
-
-test passed
-docker-build failed
-Pull Request mergeStateStatus became BLOCKED
-
-After restoring Dockerfile:
-
-test passed
-docker-build passed
-Pull Request mergeStateStatus became CLEAN
-
-This confirmed that docker-build is an effective required merge gate.
-
-### Docker command disappeared from WSL
-
-Ubuntu temporarily reported:
-
-The command 'docker' could not be found in this WSL 2 distro.
-
-Docker Desktop WSL integration was already enabled.
-
-Solution:
-
-Ran:
-
-wsl --shutdown
-
-from Windows, restarted Ubuntu while Docker Desktop was running, and verified Docker access again with:
-
-docker version
-
-## Current Technologies
-
-- Linux
-- Ubuntu
-- WSL 2
-- Git
-- GitHub
-- GitHub CLI
-- GitHub Branch Protection
-- Python 3.14
-- Python virtual environments
-- pip
-- FastAPI
-- Uvicorn
-- pytest
-- httpx
-- Docker
-- Kubernetes
-- Minikube
-- kubectl
-- Docker Desktop
-- Docker Desktop WSL 2 integration
-- GitHub Actions
-- YAML
-- Continuous Integration
-- Pull Requests
-- GitHub Container Registry
-- Docker image registries
-- AWS
-- Amazon EC2
-- AWS IAM
-- Security Groups
-- Amazon EBS
-- SSH
-
-## Next Task
-
-Begin the AWS Kubernetes phase.
-
-Next:
-- understand what Amazon EKS provides
-- understand the relationship between EKS control plane and worker compute
-- decide the minimum sensible EKS architecture for this portfolio
-- use Terraform to create the required AWS Kubernetes infrastructure
-- deploy the existing Kubernetes manifests to AWS
-
-Do not introduce Helm until the Kubernetes manifests are understood and working on AWS.
-
-## Future Architecture
-
-Developer
-   |
-   v
-GitHub
-   |
-   v
-GitHub Actions CI/CD
-   |
-   v
-Tests + Docker Build
-   |
-   v
-Container Registry
-   |
-   v
-AWS Infrastructure
-   |
-   v
-Kubernetes
-   |
-   v
-Helm
-   |
-   +--> Application
-   |
-   +--> Prometheus
-   |
-   +--> Grafana
-   |
-   +--> Logging / Observability
-
-## Terraform Security Group Milestone
-
-Completed:
-- First Terraform-managed AWS Security Group created
-- Security Group created inside the existing default VPC
-- Terraform-managed outbound rule allows all IPv4 traffic
-- Terraform-managed inbound rule allows TCP port 8000
-- Terraform state inspected with terraform state list and terraform state show
-- Terraform idempotency verified: repeated terraform plan returned no changes
-- AWS CLI expired-session authentication failure troubleshot
-- AWS CLI authentication restored using aws login --remote through an Incognito browser session
-- AWS identity verified with aws sts get-caller-identity
-
-Technologies added:
-- Terraform
-- Terraform state
-- AWS CLI v2
-- AWS VPC
-- Terraform-managed Security Groups
-
-Current Terraform architecture:
-
-Existing Default VPC
-        |
-        | data.aws_vpc.default
-        v
-Terraform
-        |
-        v
-devops-portfolio-app Security Group
-        |
-        +--> Ingress: TCP 8000 from 0.0.0.0/0
-        |
-        +--> Egress: all traffic to 0.0.0.0/0
-
-Next task:
-Begin defining the compute resource that will use this Security Group, while continuing to review every terraform plan before applying infrastructure changes.
-
-
-
-
-## Terraform EC2 Deployment Milestone
-
-Completed:
-- Existing manual EC2 configuration inspected before recreating compute with Terraform
-- Existing Ubuntu 26.04 AMI inspected and reused for the learning deployment
-- Existing subnet inspected: subnet-047c7f9d3d19817a4 in eu-north-1a
-- Subnet confirmed to belong to the default VPC and assign public IPv4 addresses
-- Terraform-managed EC2 instance created
-- EC2 instance type configured as t3.micro
-- Existing EC2 key pair devops-portfolio-ec2-key reused for SSH access
-- Terraform-managed Security Group attached to the EC2 instance
-- Public IPv4 assignment explicitly enabled in Terraform
-- SSH ingress rule added for TCP port 22
-- SSH restricted to the current developer public IPv4 address using a /32 CIDR
-- Terraform plan reviewed before EC2 creation
-- Terraform created EC2 instance i-0a3070af7b8b806c7 successfully
-- Terraform state inspected for the new EC2 resource
-- EC2 system and instance health checks verified as OK
-- SSH access to the Terraform-created EC2 instance verified successfully
-- Docker installed manually on the fresh Ubuntu EC2 instance
-- Docker daemon verified as active
-- Docker socket permission problem diagnosed
-- ubuntu user added to the docker group
-- Docker client and server verified without sudo
-- Application image pulled from GitHub Container Registry
-- ghcr.io/sciencedevsoso/devops-portfolio:latest started successfully on EC2
-- Docker port 8000 mapped to container port 8000
-- FastAPI /health verified successfully from inside the EC2 instance
-- FastAPI /health verified successfully externally through the EC2 public IP
-- Terraform idempotency verified after EC2 creation with no infrastructure changes required
-
-Problems encountered:
-- The terraform-ec2-instance branch was created from a stale local main branch after PR #15 had already merged remotely
-- The EC2 resource initially referenced aws_security_group.app before the branch contained that resource
-- The EC2 work was stashed, the branch rebased onto origin/main, and the work restored
-- git stash pop produced a main.tf merge conflict because both main and the stash modified the same Terraform file
-- The conflict was resolved manually by preserving both the existing Security Group resources and the new EC2 resource
-- The old developer public IP had changed, so the existing SSH /32 CIDR could not be reused
-- The current public IPv4 address was checked before creating the Terraform SSH rule
-- Docker initially returned permission denied for /var/run/docker.sock
-- The ubuntu user was added to the docker group and a new SSH session activated the new group membership
-
-Current Terraform-managed AWS architecture:
-
-Existing Default VPC
-        |
-        v
-Existing Subnet
-subnet-047c7f9d3d19817a4
-        |
-        v
-Terraform-managed EC2
-devops-portfolio-app
-        |
-        +--> Terraform-managed Security Group
-        |       |
-        |       +--> TCP 22 from developer /32
-        |       +--> TCP 8000
-        |       +--> outbound traffic
-        |
-        +--> Ubuntu 26.04
-                |
-                v
-              Docker
-                |
-                v
-ghcr.io/sciencedevsoso/devops-portfolio:latest
-                |
-                v
-             FastAPI
-                |
-                +--> /health
-
-Next task:
-Commit and merge the Terraform EC2 milestone, then decide how to make server provisioning reproducible instead of manually installing Docker after every new EC2 instance.
-
-
-## Terraform Reproducible EC2 Provisioning Milestone
-
-Completed:
-- Added `terraform/user_data.sh` for automatic EC2 bootstrap provisioning
-- EC2 `user_data` configured with `file("${path.module}/user_data.sh")`
-- `user_data_replace_on_change = true` configured so bootstrap changes cause a fresh EC2 launch
-- Docker installation automated during the initial EC2 boot
-- Docker service automatically enabled and started
-- GHCR application image automatically pulled
-- FastAPI container automatically started on port 8000
-- Docker restart policy configured as `unless-stopped`
-- Terraform plan correctly identified that adding `user_data` required replacing the Terraform-managed EC2 instance
-- Reviewed the saved Terraform plan before applying the destructive replacement
-- Previous Terraform EC2 instance `i-0a3070af7b8b806c7` replaced intentionally
-- New Terraform EC2 instance created: `i-00c82256c055c7dc1`
-- New EC2 public IP after replacement: `13.60.8.100`
-- `/health` succeeded immediately from outside EC2 without manual server provisioning
-- Confirmed that Terraform can now reproduce the EC2 + Docker + FastAPI runtime from a fresh instance
-- Added Terraform input variables for AWS region, AMI, instance type, subnet, EC2 key pair, and developer SSH CIDR
-- Replaced hardcoded resource values with `var.<name>` references
-- Added local `terraform.tfvars` for environment-specific values
-- Added `terraform.tfvars.example` for repository documentation
-- Added `terraform/terraform.tfvars` to `.gitignore`
-- Added outputs for EC2 instance ID, EC2 public IP, application URL, and default VPC CIDR
-- Variable/output refactor validated with `terraform fmt`, `terraform validate`, and `terraform plan`
-- Refactor produced no real infrastructure changes
-- Application health verified again after the refactor
-
-Important technical decisions:
-- Use EC2 `user_data` only as a simple bootstrap mechanism at this stage, not as a long-term deployment platform
-- Treat infrastructure provisioning and application deployment as related but separate concerns
-- Use `user_data_replace_on_change = true` because initial-boot bootstrap scripts should run against a fresh instance when their configuration changes
-- Keep environment-specific Terraform values separate from resource definitions
-- Do not treat `.tfvars` files as secret-management systems
-- Keep the real local `terraform.tfvars` out of Git and commit only an example file
-- Expose infrastructure information through Terraform outputs instead of repeatedly inspecting raw Terraform state
-- Continue reviewing destructive Terraform plans before applying them
-
-Problems encountered:
-- `terraform plan` failed because the AWS CLI login session had expired
-- `aws sso login` failed because the AWS CLI configuration was not IAM Identity Center/SSO based
-- Authentication was restored with the AWS CLI login flow and verified with `aws sts get-caller-identity`
-- This reinforced the distinction between AWS CLI login credentials and `aws sso login`
-
-Current deployment flow:
-
-Terraform
-   |
-   v
-AWS EC2
-   |
-   | first boot
-   v
-cloud-init / user_data
-   |
-   +--> apt update
-   +--> install Docker
-   +--> enable/start Docker
-   +--> pull GHCR image
-   +--> start container
-              |
-              v
-           FastAPI
-              |
-              +--> /health
-
-
-## Local Kubernetes / Minikube Milestone
-
-Completed:
-- Minikube installed in Ubuntu/WSL
-- Minikube configured to use the Docker driver
-- Local single-node Kubernetes cluster created
-- Kubernetes node verified as `Ready`
-- `kubectl` successfully connected to the Minikube cluster
-- `k8s/deployment.yaml` created
-- FastAPI deployed from `ghcr.io/sciencedevsoso/devops-portfolio:latest`
-- Kubernetes Deployment configured with one replica
-- readiness probe configured against `/health`
-- liveness probe configured against `/health`
-- `k8s/service.yaml` created
-- ClusterIP Service configured on port 8000
-- Kubernetes rolling update observed after adding health probes
-- application Pod reached `Ready 1/1`
-- deliberate Pod deletion used to test Kubernetes self-healing
-- Deployment automatically created a replacement Pod
-- replacement Pod reached Running and Ready state
-- `kubectl port-forward` used to access the ClusterIP Service locally
-- `/health` successfully returned `{"status":"healthy"}` through the Kubernetes Service
-
-Problems encountered:
-- Minikube initially failed with `PROVIDER_DOCKER_VERSION_EXIT_1`
-- `docker` was unavailable inside the WSL Ubuntu distro
-- Docker Desktop WSL integration was re-enabled
-- Docker client and Docker Desktop engine were verified with `docker version`
-- Minikube then started successfully using the Docker driver
-
-Key lessons:
-- Pods are disposable runtime units
-- Deployments maintain desired application state
-- deleting a Pod does not delete the application when a Deployment manages it
-- Services provide stable networking in front of disposable Pods
-- ClusterIP Services are internal to the cluster
-- `kubectl port-forward` provides temporary local access for development/testing
-- readiness probes control whether a Pod should receive traffic
-- liveness probes help Kubernetes detect unhealthy application containers
-
-
-## Standalone EC2 Retirement Milestone
-
-Completed:
-- Local Kubernetes deployment verified before retiring standalone EC2
-- Terraform EC2 application resource removed from configuration
-- EC2-specific Terraform variables removed
-- EC2-specific Terraform outputs removed
-- EC2 user_data bootstrap script removed
-- EC2-specific terraform.tfvars example removed
-- Terraform configuration validated successfully
-- Destructive Terraform plan reviewed before apply
-- Terraform plan contained exactly 5 resource destructions
-- Terraform-managed EC2 instance `i-00c82256c055c7dc1` destroyed
-- application Security Group destroyed
-- SSH ingress rule destroyed
-- TCP 8000 ingress rule destroyed
-- outbound Security Group rule destroyed
-- Terraform apply completed with `0 added, 0 changed, 5 destroyed`
-- existing default VPC remains untouched
-- standalone EC2 application deployment is no longer active
-
-Architecture transition:
-
-Before:
-
-Terraform
-   |
-   v
-EC2
-   |
-   v
-Docker
-   |
-   v
-FastAPI
-
-Current:
-
-GitHub Actions
-   |
-   v
-GHCR
-   |
-   v
-Kubernetes / Minikube
-   |
-   v
-Deployment
-   |
-   v
-Pod
-   |
-   v
-FastAPI
-
-Terraform will next be reused for AWS Kubernetes/EKS infrastructure.
-
-## AWS EKS Milestone
-
-Completed:
-- Amazon EKS cluster created with Terraform
-- Kubernetes version 1.36 configured
-- EKS control plane created successfully
-- Separate IAM role created for the EKS control plane
-- Separate IAM role created for Kubernetes worker nodes
-- Required EKS, ECR, worker-node, and CNI policies attached
-- Existing default VPC reused
-- Three existing subnets across eu-north-1a, eu-north-1b, and eu-north-1c used
-- Kubernetes public API endpoint restricted to the developer public IP /32
-- EKS managed node group created
-- Worker node configured as t3.small
-- Worker node verified as Ready with kubectl
-- Existing Kubernetes Deployment and Service manifests reused unchanged
-- FastAPI Pod deployed successfully to EKS
-- Pod reached Ready 1/1
-- ClusterIP Service created successfully
-- /health verified successfully through kubectl port-forward
-
-Problems encountered:
-- Initial managed node group used t3.medium
-- AWS rejected t3.medium because it was not Free Tier eligible for the account
-- Node group entered CREATE_FAILED after a long provisioning attempt
-- Free Tier eligible EC2 instance types were checked before retrying
-- t3.small was confirmed eligible
-- Terraform detected the failed node group as tainted
-- Terraform replaced only the failed node group
-- Corrected t3.small node group became ACTIVE successfully
-
-Important lessons:
-- EKS is AWS-managed Kubernetes
-- AWS manages the EKS Kubernetes control plane
-- Worker nodes provide compute where Kubernetes Pods actually run
-- Managed node groups manage worker-node lifecycle
-- EC2 still exists underneath Kubernetes, but it is generic cluster capacity instead of a dedicated application server
-- Kubernetes manifests can be reused across Minikube and EKS
-- Slow cloud operations should have fast prerequisite checks before apply
-- Terraform can recover from failed infrastructure by replacing tainted resources
-
-Current AWS Kubernetes architecture:
-
-GitHub Actions
-      |
-      v
-GHCR
-      |
-      v
-Amazon EKS
-      |
-      +--> AWS-managed Kubernetes control plane
-      |
-      +--> Managed Node Group
-              |
-              v
-         t3.small Worker
-              |
-              v
-           Deployment
-              |
-              v
-             Pod
-              |
-              v
-           FastAPI
-              |
-              +--> /health
-
-Next:
-Introduce Helm only after the existing Kubernetes manifests are fully understood.
-
-
-## Helm Application Management Milestone
-
-Completed on 2026-09-22:
-- Introduced `helm/devops-portfolio/` to package application resources, centralize configuration, and track deployments as Helm releases
-- `Chart.yaml` defines chart metadata and version; `values.yaml` supplies configuration; `templates/` renders the Deployment and Service
-- Kept configuration deliberately limited to `replicaCount`, `image.repository`, `image.tag`, and `service.port`
-- Validated the chart with `helm lint` and `helm template`
-- Confirmed the expected EKS context, healthy existing resources, no existing Helm releases, and no conflicting ownership metadata
-- Compared the live image, replica count, selectors, ports, and health probes against the rendered chart; differences were Kubernetes defaults and allocated Service fields
-- Adopted the existing Deployment and Service into release `devops-portfolio`, namespace `default`, using Helm 4.3.0
-- Preserved both resource UIDs, the existing Pod, and Service ClusterIP `10.100.135.172`; no resource replacement or Pod restart occurred
-- Verified `helm list`, `helm status` (deployed, revision 1), Deployment and Pod readiness, Service, and successful rollout status
-- Verified `/health` returned `{"status":"healthy"}` through a temporary Service port-forward
-- Confirmed both resources carry `app.kubernetes.io/managed-by: Helm`, `meta.helm.sh/release-name: devops-portfolio`, and `meta.helm.sh/release-namespace: default`
-- Retained the original `k8s/` manifests and left README.md unchanged
-
-Exact migration command:
-
-```bash
-helm install devops-portfolio helm/devops-portfolio --namespace default --kube-context arn:aws:eks:eu-north-1:237076104687:cluster/devops-portfolio-eks --take-ownership --server-side=false --wait=watcher --timeout 5m
-```
-
-Ownership and troubleshooting lessons:
-- Existing manually applied resources need explicit adoption; matching resource names alone does not establish Helm ownership
-- Checked installed Helm 4 CLI help before using `--take-ownership`; this option bypasses ownership checks, so inspect existing releases and metadata first
-- Used client-side updates (`--server-side=false`) for this adoption, without forced replacement
-- Avoid install rollback-on-failure during adoption: Helm documents that it uninstalls a failed installation, which could remove adopted resources
-- Helm now controls these resources; uninstalling this release would remove the application Deployment and Service
-- Helm 4 `helm list` includes all release statuses by default; the older `--all` flag is unsupported
-- Expired AWS credentials initially prevented inspection; authentication was restored with `aws login`
-- AWS authentication alone did not restore Kubernetes connectivity: the EKS API allowlist still contained an old developer IP
-- Updated the local ignored Terraform variables and applied the API CIDR change before retrying; no infrastructure resources were added or destroyed
-- This chart uses fixed resource names and is intended for one application release per namespace
-- The current image tag remains `latest`; use the existing image tag parameter with a commit SHA when an immutable deployment version is needed
-
-Current architecture:
-
-```text
-GitHub Actions -> GHCR -> Amazon EKS managed node group (t3.small)
-                              |
-Helm chart -> Helm release -> Deployment -> Pod -> FastAPI :8000
-                              |
-                              +-> ClusterIP Service :8000
-                              +-> readiness/liveness probes: /health
-Terraform -> EKS infrastructure, IAM, and restricted API access
-```
-
-Next phase: expose application metrics and introduce Prometheus scraping and
-monitoring, while retaining `/health` for Kubernetes probes.
+# Project status
+
+Updated: 2026-09-22. Working branch: `feature/observability`.
+
+## Current architecture
+
+- FastAPI on one `t3.small` EKS worker in `eu-north-1`.
+- Terraform manages EKS, IAM, the managed node group, and restricted API access.
+- Helm release `devops-portfolio` in `default` manages the app; the deployed image
+  predates the observability changes.
+- Helm release `monitoring` in `monitoring` runs Prometheus, Grafana, and
+  kube-state-metrics. Kubelet supplies node/container metrics without another
+  DaemonSet. Monitoring release revision 2 disables optional Grafana plugins.
+- GitHub Actions tests PRs and builds containers; GHCR publication runs only on
+  `main`, using `latest` and commit-SHA tags. This PR must not be merged automatically.
+- Logs remain stdout/stderr plus `kubectl logs`. No centralized logging stack.
+
+## Observability implemented
+
+- Pinned `prometheus-client==0.26.0`; `/metrics` endpoint, request/error counters,
+  and latency histogram. Bounded method/route/status labels; probes and scrapes
+  excluded. Tests cover 2xx, 4xx, handled/unhandled 5xx, route templates, unknown
+  methods, and streaming responses.
+- Existing app Helm chart updated only for CPU/memory requests and limits and
+  chart version. The live app release has not been changed.
+- Version-controlled monitoring images, limits, RBAC, 60-second scrapes,
+  six-hour/256MB retention, Grafana datasource, and 12-panel dashboard.
+- Three monitoring pods request 170m CPU/416Mi memory in total. No persistent
+  volumes, public ingress, operator, Alertmanager, or additional AWS resources.
+- Added configuration/PromQL validation to CI and a read-only runtime verifier.
+- README and [observability runbook](docs/observability.md) document deployment,
+  queries, credentials, safe troubleshooting, and resource boundaries.
+
+## Validation evidence
+
+- Python 3.14: **9 tests passed**, with two existing dependency deprecation
+  warnings. `pip check` reported no broken dependencies.
+- Both charts passed `helm lint` and rendering.
+- Prometheus 3.14.0 `promtool` accepted the scrape configuration and all 12
+  dashboard PromQL expressions.
+- Real local Uvicorn + Prometheus integration verified a healthy scrape,
+  successful request counts, 404 error counts, histogram observations, positive
+  request rate, and p95 latency.
+- Live EKS: Prometheus, kube-state-metrics, kubelet, cAdvisor, and node-resource
+  targets passed. Queries returned node CPU/memory, container CPU/memory,
+  node Ready, application deployment availability, and pod restarts.
+- After the Grafana configuration fix, all three monitoring pods were Ready;
+  the worker was Ready with MemoryPressure, DiskPressure, and PIDPressure false.
+  Eight running pods occupy the worker's eleven allocatable pod slots.
+- Grafana's database health, authenticated Prometheus datasource health, and
+  provisioned 12-panel dashboard passed API checks. The replacement Grafana pod
+  remained Ready without restarts during the follow-up checks.
+- Live resource requests total 520m CPU/556Mi memory before the app chart update.
+  A short sample showed about 1,033Mi node memory working set and 0.28 CPU cores
+  used; these observations are not a sustained capacity guarantee.
+
+## Remaining verification and merge boundary
+
+- The live application's old image returns no `/metrics`; `up{job="fastapi"}`
+  is 0. Deploy the published commit-SHA image **after** human review/merge and
+  successful main-branch publication. Generate one successful request and one
+  safe 404, wait for scrapes, and run `python3 scripts/verify-monitoring.py`
+  without `--skip-app`. This step remains pending, not passed.
+- The local Docker CLI is unavailable after the WSL restart. Container build
+  validation therefore relies on the PR's Docker CI job until integration is
+  restored.
+- Short verification is not a sustained load or capacity test. Watch resource
+  usage and node conditions during normal use. Stop and report any capacity
+  problem; do not resize AWS or remove system workloads to accommodate monitoring.
+
+## Issues resolved during this milestone
+
+- Sandbox restrictions prevented snap tools from running and caused TestClient
+  to hang. Approved execution outside the sandbox allowed checks to proceed.
+- WSL/Helm DNS intermittently timed out while system DNS and kubectl worked.
+  Helm connected using a freshly resolved EKS API IP with the original TLS
+  hostname still verified. No kubeconfig, DNS, or AWS network policy was changed.
+- Grafana's default optional plugin downloads exceeded the 128Mi data-volume
+  quota and caused eviction. Disabled plugin preinstallation/management through
+  Helm without increasing resource limits. Evicted pods were not manually deleted.
+- Prometheus target discovery starts asynchronously; integration validation now
+  waits for a healthy target before evaluating rates.
+
+## Earlier milestones completed
+
+- FastAPI endpoints, tests, Docker packaging, GitHub Actions, protected `main`,
+  required PR checks, and GHCR images with immutable SHA tags.
+- Manual EC2 deployment, Terraform networking/EC2, and reproducible bootstrap;
+  standalone EC2 resources subsequently retired through a reviewed plan.
+- Local Minikube deployment, probes, Service networking, and self-healing exercises.
+- Terraform-managed EKS with one `t3.small`, followed by non-destructive adoption
+  of the existing app Deployment/Service into Helm.
+
+Detailed historical milestone notes remain available in earlier Git revisions.
+The `k8s/` directory remains learning material; current deployments use Helm.
